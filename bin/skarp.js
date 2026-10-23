@@ -105,7 +105,7 @@ async function installFile(targetDir, relTarget, adapterPath, { force, append })
       if (existingText.includes(startMarker)) {
         const regex = new RegExp(`${escapeRegex(startMarker)}[\\s\\S]*?${escapeRegex(endMarker)}`, 'g');
         const block = `${startMarker}\n${content}\n${endMarker}`;
-        const updated = existingText.replace(regex, block);
+        const updated = existingText.replace(regex, () => block);
         fs.writeFileSync(fullTarget, updated, 'utf8');
         console.log(`  [UPDATED] ${relTarget} (refreshed existing Skarp block)`);
         return;
