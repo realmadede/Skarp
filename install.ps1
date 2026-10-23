@@ -67,10 +67,10 @@ Usage:
   install.ps1 [-Agents <list>] [-Dir <path>] [-Force] [-Append] [-NoExamples] [-List] [-Help]
 
 Options:
-  -Agents, -a       Comma-separated list or array of agents to install (default: all)
+  -Agents, -agent   Comma-separated list or array of agents to install (default: all)
                     Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
   -Dir, -d          Target project directory (default: .)
-  -Append, -A       Append/merge guidelines into existing files instead of skipping
+  -Append, -app     Append/merge guidelines into existing files instead of skipping
   -Uninstall, -u    Uninstall guidelines from target directory (cleans merged blocks)
   -Force, -f        Overwrite existing rule files without prompting
   -NoExamples       Skip copying EXAMPLES.md reference file
@@ -125,6 +125,8 @@ if (-not $ResolvedTargetDir) {
     $ResolvedTargetDir = $ResolvedTargetDir.Path
 }
 
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
 function Wrap-SkarpContent {
     param ([string]$Content)
     $StartMarker = "<!-- SKARP_GUIDELINES_START -->"
@@ -166,7 +168,7 @@ function Uninstall-SkarpFile {
         Remove-Item -Path $FullTarget -Force
         Write-Host "  [REMOVED] $RelTarget"
     } else {
-        Set-Content -Path $FullTarget -Value ($Remaining + "`r`n") -Encoding UTF8
+        [System.IO.File]::WriteAllText($FullTarget, ($Remaining + "`r`n"), $Utf8NoBom)
         Write-Host "  [CLEANED] $RelTarget (removed Skarp block)"
     }
 
@@ -175,12 +177,6 @@ function Uninstall-SkarpFile {
         $Remaining = Get-ChildItem -Path $ParentFolder -Force -Recurse
         if (-not $Remaining) {
             Remove-Item -Path $ParentFolder -Force -Recurse -ErrorAction SilentlyContinue
-        }
-    }
-    foreach ($agent in $Selected) {
-        if ($AllAgents -notcontains $agent) {
-            Write-Error "Unknown agent: $agent. Valid agents: $($AllAgents -join ', '), all"
-            exit 1
         }
     }
 }
@@ -248,12 +244,12 @@ function Install-SkarpFile {
                 $Pattern = [regex]::Escape($StartMarker) + ".*?" + [regex]::Escape($EndMarker)
                 $Replacement = "$StartMarker`r`n$Content`r`n$EndMarker"
                 $NewText = [regex]::Replace($ExistingText, $Pattern, $Replacement, [System.Text.RegularExpressions.RegexOptions]::Singleline)
-                Set-Content -Path $FullTarget -Value $NewText -Encoding UTF8
+                [System.IO.File]::WriteAllText($FullTarget, $NewText, $Utf8NoBom)
                 Write-Host "  [UPDATED] $RelTarget (refreshed existing Skarp block)"
                 return
             } else {
                 $NewText = "$ExistingText`r`n`r`n$StartMarker`r`n$Content`r`n$EndMarker"
-                Set-Content -Path $FullTarget -Value $NewText -Encoding UTF8
+                [System.IO.File]::WriteAllText($FullTarget, $NewText, $Utf8NoBom)
                 Write-Host "  [MERGED]  $RelTarget (appended to existing file)"
                 return
             }
@@ -264,7 +260,7 @@ function Install-SkarpFile {
     }
 
     $Wrapped = Wrap-SkarpContent $Content
-    Set-Content -Path $FullTarget -Value $Wrapped -Encoding UTF8
+    [System.IO.File]::WriteAllText($FullTarget, $Wrapped, $Utf8NoBom)
     Write-Host "  [OK]      $RelTarget"
 }
 
