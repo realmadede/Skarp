@@ -54,7 +54,7 @@ jobs:
           grep -q "Existing Project Instructions" "$TEST_DIR/CLAUDE.md"
           ! grep -q "SKARP_GUIDELINES_START" "$TEST_DIR/CLAUDE.md"
 
-      - name: Test install.sh (Regression tests: user file survival, single marker, invalid agents)
+      - name: "Test install.sh (Regression tests: user file survival, single marker, invalid agents)"
         run: |
           # 1. Invalid agent name exits non-zero
           ! ./install.sh --agents invalid_agent
