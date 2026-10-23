@@ -15,3 +15,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+
+# Private repository rulesets and configurations
+ruleset*.json
