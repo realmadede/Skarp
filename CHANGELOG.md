@@ -19,11 +19,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - **License**: Add MIT license file.
 - **Repository guidelines & hygiene**: Add `.gitignore`, `SECURITY.md`, and `CHANGELOG.md`.
-- **Packaging**: Specify `files` and `engines` (`>=18`) in `package.json`.
+- **Packaging & CI Release**: Specify `files` and `engines` (`>=18`) in `package.json` and add `.github/workflows/release.yml` for automated GitHub Releases and npm publishing on tag push.
 - **Automated test suite & CI coverage**: Add `scripts/test.js` (`npm test`) and expand GitHub Actions workflow with regression tests for installer bugs, user file survival, single-marker append, and invalid arguments across Linux, macOS, and Windows.
+- **OpenAI Codex support**: Add OpenAI Codex agent adapter (`CODEX.md`) with full installer and sync integration.
+- **Community templates**: Add GitHub issue forms (`bug_report.yml`, `feature_request.yml`, `config.yml`) and pull request template (`PULL_REQUEST_TEMPLATE.md`).
+- **Benchmark & comparative study**: Add end-to-end before/after case study in `EXAMPLES.md`.
 
 ### Changed
 - **Single source of truth**: Re-architect `scripts/sync_adapters.py` to parse core principles dynamically from `AGENTS.md` and generate all agent adapters.
+- **Installer feature parity**: Add `-s/--symlink` support and symlink append protection to `bin/skarp.js` and `install.ps1`.
 - **Cursor configuration**: Remove uninstalled legacy `.cursorrules` in favor of modern `.cursor/rules/karpathy-guidelines.mdc`.
-- **PowerShell documentation**: Update README PowerShell one-liners to use scriptblock invocation syntax.
+- **PowerShell documentation**: Update README PowerShell one-liners to use scriptblock invocation syntax and document execution policy bypass.
 - **Help text**: Document `-e, --examples` flag in `install.sh` help output.

@@ -1,0 +1,62 @@
+name: Bug Report
+description: Report a defect, unexpected behavior, or installer issue
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please provide as much detail as possible.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: What OS, shell, and Node/Python versions are you using?
+      placeholder: "e.g., Ubuntu 24.04, bash 5.2, Node 20.11"
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Affected Agent / Installer
+      description: Which installer or agent configuration is affected?
+      options:
+        - "install.sh (Bash)"
+        - "install.ps1 (PowerShell)"
+        - "bin/skarp.js (npm / npx)"
+        - "Universal (AGENTS.md)"
+        - "Claude Code (CLAUDE.md)"
+        - "Cursor (.mdc)"
+        - "GitHub Copilot"
+        - "Windsurf"
+        - "Cline"
+        - "Aider"
+        - "Gemini CLI"
+        - "OpenAI Codex"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      description: Provide reproduction commands or steps.
+      placeholder: |
+        1. Run `install.sh --dir /tmp/test`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear explanation of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened, including error outputs or logs.
+    validations:
+      required: true

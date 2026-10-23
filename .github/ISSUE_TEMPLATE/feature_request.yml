@@ -1,0 +1,24 @@
+name: Feature / Agent Request
+description: Suggest an enhancement or request support for a new AI coding agent
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest an improvement or support for a new AI coding assistant.
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Description / Proposal
+      description: What feature or agent support would you like to see added?
+      placeholder: "e.g., Add support for Agent XYZ and its configuration file .xyzrules"
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Context / Use Case
+      description: Why would this be useful and how does it fit the 4 core Karpathy principles?
+    validations:
+      required: true

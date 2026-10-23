@@ -1,7 +1,7 @@
 # Skarp — Universal Karpathy Guidelines for AI Coding Agents
 
 [![CI](https://github.com/realmadede/Skarp/actions/workflows/ci.yml/badge.svg)](https://github.com/realmadede/Skarp/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/realmadede/Skarp/releases)
 
 > Universal behavioral guidelines to reduce common LLM coding mistakes across **any** AI agent, derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on AI coding pitfalls.
@@ -47,6 +47,7 @@ Skarp comes with pre-configured adapters for all major tools located in [`adapte
 | **Cline / Roo Code** | `.clinerules` | [`adapters/cline/.clinerules`](adapters/cline/.clinerules) |
 | **Aider** | `CONVENTIONS.md` | [`adapters/aider/CONVENTIONS.md`](adapters/aider/CONVENTIONS.md) |
 | **Gemini CLI / Antigravity** | `GEMINI.md` | [`adapters/gemini/GEMINI.md`](adapters/gemini/GEMINI.md) |
+| **OpenAI Codex** | `CODEX.md` | [`adapters/codex/CODEX.md`](adapters/codex/CODEX.md) |
 
 ---
 
@@ -95,6 +96,12 @@ irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1 | iex
 # Or specify agents and append mode:
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1))) -Agents cursor,claude -Append
 ```
+
+> [!TIP]
+> **Windows Execution Policy:** If PowerShell restricts script execution, bypass it for the current session:
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> ```
 
 ---
 

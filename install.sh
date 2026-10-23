@@ -23,7 +23,7 @@ WITH_EXAMPLES=true
 APPEND=false
 UNINSTALL=false
 
-ALL_AGENTS=("universal" "claude" "cursor" "copilot" "windsurf" "cline" "aider" "gemini")
+ALL_AGENTS=("universal" "claude" "cursor" "copilot" "windsurf" "cline" "aider" "gemini" "codex")
 
 print_banner() {
   cat <<'EOF'
@@ -48,7 +48,7 @@ Usage:
 
 Options:
   -a, --agents <list>   Comma-separated list of agents to install (default: all)
-                        Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
+                        Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, codex, all
   -d, --dir <path>      Target project directory (default: current directory .)
   -e, --examples        Include EXAMPLES.md reference file (enabled by default)
   --no-examples         Skip copying EXAMPLES.md reference file
@@ -87,6 +87,7 @@ Supported Agents & Target Files:
   cline       -> .clinerules
   aider       -> CONVENTIONS.md
   gemini      -> GEMINI.md
+  codex       -> CODEX.md
 EOF
   exit 0
 }
@@ -159,11 +160,11 @@ else
   done
   for agent in "${SELECTED_AGENTS[@]}"; do
     case "$agent" in
-      universal|claude|cursor|copilot|windsurf|cline|aider|gemini)
+      universal|claude|cursor|copilot|windsurf|cline|aider|gemini|codex)
         ;;
       *)
         echo "Error: Unknown agent: $agent" >&2
-        echo "Valid agents: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all" >&2
+        echo "Valid agents: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, codex, all" >&2
         exit 1
         ;;
     esac
@@ -260,6 +261,7 @@ if [[ "$UNINSTALL" == true ]]; then
       cline)     uninstall_file ".clinerules" ;;
       aider)     uninstall_file "CONVENTIONS.md" ;;
       gemini)    uninstall_file "GEMINI.md" ;;
+      codex)     uninstall_file "CODEX.md" ;;
     esac
   done
   uninstall_file "EXAMPLES.md"
@@ -393,6 +395,9 @@ for agent in "${SELECTED_AGENTS[@]}"; do
       ;;
     gemini)
       install_file "gemini" "GEMINI.md" "adapters/gemini/GEMINI.md"
+      ;;
+    codex)
+      install_file "codex" "CODEX.md" "adapters/codex/CODEX.md"
       ;;
     *)
       echo "  [WARN] Unrecognized agent: $agent (skipping)"

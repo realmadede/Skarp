@@ -22,6 +22,7 @@ const AGENT_MAPPINGS = {
   cline:     { target: '.clinerules', adapter: 'adapters/cline/.clinerules' },
   aider:     { target: 'CONVENTIONS.md', adapter: 'adapters/aider/CONVENTIONS.md' },
   gemini:    { target: 'GEMINI.md', adapter: 'adapters/gemini/GEMINI.md' },
+  codex:     { target: 'CODEX.md', adapter: 'adapters/codex/CODEX.md' },
 };
 
 function printBanner() {
@@ -46,8 +47,9 @@ Usage:
 
 Options:
   -a, --agents <list>   Comma-separated list of agents to install (default: all)
-                        Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
+                        Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, codex, all
   -d, --dir <path>      Target directory (default: current directory .)
+  -s, --symlink         Create symlinks instead of copying (requires local cloned repo)
   -A, --append          Append/merge guidelines into existing files instead of skipping
   -u, --uninstall       Uninstall guidelines from target directory (cleans merged blocks)
   -f, --force           Overwrite existing files without prompting
@@ -87,11 +89,41 @@ async function getContent(adapterPath) {
   return await fetchRemote(url);
 }
 
-async function installFile(targetDir, relTarget, adapterPath, { force, append }) {
+async function installFile(targetDir, relTarget, adapterPath, { force, append, symlink = false }) {
   const fullTarget = path.join(targetDir, relTarget);
   const parentDir = path.dirname(fullTarget);
   if (!fs.existsSync(parentDir)) {
     fs.mkdirSync(parentDir, { recursive: true });
+  }
+
+  try {
+    const stat = fs.lstatSync(fullTarget);
+    if (stat.isSymbolicLink() && append) {
+      console.error(`Error: Cannot --append to symlinked file: ${relTarget}`);
+      process.exit(1);
+    }
+  } catch {}
+
+  if (symlink) {
+    const localFile = path.join(REPO_ROOT, adapterPath);
+    if (!fs.existsSync(localFile)) {
+      console.error(`Error: --symlink requires local repository files, but ${adapterPath} was not found.`);
+      process.exit(1);
+    }
+    try {
+      const exists = fs.existsSync(fullTarget) || fs.lstatSync(fullTarget).isSymbolicLink();
+      if (exists) {
+        if (force) {
+          fs.unlinkSync(fullTarget);
+        } else {
+          console.log(`  [SKIP]    ${relTarget} already exists. Use --force.`);
+          return;
+        }
+      }
+    } catch {}
+    fs.symlinkSync(path.resolve(localFile), fullTarget);
+    console.log(`  [LINK]    ${relTarget} -> ${localFile}`);
+    return;
   }
 
   const content = await getContent(adapterPath);
@@ -191,6 +223,7 @@ async function main() {
   let agentsList = ['all'];
   let force = false;
   let append = false;
+  let symlink = false;
   let uninstall = false;
   let withExamples = true;
 
@@ -206,6 +239,8 @@ async function main() {
     }
     if (arg === '-f' || arg === '--force') {
       force = true;
+    } else if (arg === '-s' || arg === '--symlink') {
+      symlink = true;
     } else if (arg === '-A' || arg === '--append') {
       append = true;
     } else if (arg === '-u' || arg === '--uninstall') {
@@ -229,6 +264,11 @@ async function main() {
       console.error('Run with -h or --help for usage information.');
       process.exit(1);
     }
+  }
+
+  if (symlink && append) {
+    console.error('Error: Cannot combine --symlink and --append.');
+    process.exit(1);
   }
 
   const validAgents = Object.keys(AGENT_MAPPINGS);
@@ -265,11 +305,11 @@ async function main() {
 
   for (const key of selectedKeys) {
     const { target, adapter } = AGENT_MAPPINGS[key];
-    await installFile(targetDir, target, adapter, { force, append });
+    await installFile(targetDir, target, adapter, { force, append, symlink });
   }
 
   if (withExamples) {
-    await installFile(targetDir, 'EXAMPLES.md', 'EXAMPLES.md', { force, append });
+    await installFile(targetDir, 'EXAMPLES.md', 'EXAMPLES.md', { force, append, symlink });
   }
 
   console.log('\nInstallation complete! Skarp guidelines are now active.');

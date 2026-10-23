@@ -39,6 +39,7 @@ jobs:
           test -f "$TEST_DIR/.clinerules"
           test -f "$TEST_DIR/CONVENTIONS.md"
           test -f "$TEST_DIR/GEMINI.md"
+          test -f "$TEST_DIR/CODEX.md"
           test -f "$TEST_DIR/EXAMPLES.md"
 
       - name: Test install.sh (Specific agents & Append mode)

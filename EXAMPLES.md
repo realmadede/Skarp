@@ -520,3 +520,40 @@ The "simple" versions are:
 - Can be refactored later when complexity is actually needed
 
 **Good code is code that solves today's problem simply, not tomorrow's problem prematurely.**
+
+---
+
+## 5. End-to-End Comparative Case Study
+
+### Task: "Validate that the user input email is valid before submitting the form"
+
+#### ❌ Unguided Agent Execution (Diff Bloat & Overengineering)
+1. **Unsolicited Architecture**: Creates an `AbstractValidator`, `ValidatorFactory`, and `RegexValidationStrategy`.
+2. **Orthogonal Edits**: Re-indents the surrounding form component and removes unrelated comments.
+3. **Diff Size**: +142 lines across 3 new files and 2 existing files.
+4. **Verification**: "Done! I have refactored your validation system." (No tests written or executed).
+
+#### ✅ Skarp-Guided Agent Execution (Surgical & Goal-Driven)
+1. **Formulate Verifiable Plan**:
+   ```text
+   1. Add unit test for invalid email formats -> verify: pytest tests/test_validation.py fails
+   2. Implement minimal email regex check in submit handler -> verify: pytest passes
+   3. Check git diff -> verify: zero changes outside validation logic
+   ```
+2. **Minimal Inline Implementation**:
+   ```python
+   # tests/test_validation.py
+   def test_invalid_email_rejected():
+       assert is_valid_email("bad-email") is False
+       assert is_valid_email("user@example.com") is True
+
+   # auth.py
+   import re
+
+   EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+   def is_valid_email(email: str) -> bool:
+       return bool(EMAIL_REGEX.match(email))
+   ```
+3. **Diff Size**: +12 lines directly solving the user request.
+4. **Verification**: Tests executed and passed; git diff confirmed surgical.

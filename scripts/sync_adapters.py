@@ -192,6 +192,26 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
 {examples}
 """
 
+    # OpenAI Codex / Canvas / Coding Assistants
+    codex = f"""# CODEX.md — OpenAI Codex Guidelines
+
+Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines intentionally bias toward **caution over speed**. For trivial tasks, use judgment.
+
+---
+
+{principles}
+
+---
+
+{summary}
+
+---
+
+{examples}
+"""
+
     adapters = {
         ADAPTERS_DIR / "universal" / "AGENTS.md": universal_agents,
         ADAPTERS_DIR / "claude" / "CLAUDE.md": claude.strip() + "\n",
@@ -201,6 +221,7 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
         ADAPTERS_DIR / "cline" / ".clinerules": cline.strip() + "\n",
         ADAPTERS_DIR / "aider" / "CONVENTIONS.md": aider.strip() + "\n",
         ADAPTERS_DIR / "gemini" / "GEMINI.md": gemini.strip() + "\n",
+        ADAPTERS_DIR / "codex" / "CODEX.md": codex.strip() + "\n",
     }
 
     return adapters

@@ -57,6 +57,7 @@ const installRes = runCli(['--dir', tmpDir1]);
 assert(installRes.status === 0, 'Default install should succeed');
 assert(fs.existsSync(path.join(tmpDir1, 'AGENTS.md')), 'AGENTS.md must exist');
 assert(fs.existsSync(path.join(tmpDir1, 'CLAUDE.md')), 'CLAUDE.md must exist');
+assert(fs.existsSync(path.join(tmpDir1, 'CODEX.md')), 'CODEX.md must exist');
 assert(fs.existsSync(path.join(tmpDir1, 'EXAMPLES.md')), 'EXAMPLES.md must exist');
 
 // Test 5: User file protection during uninstall (no --append)
@@ -88,9 +89,21 @@ content = fs.readFileSync(claudePath, 'utf8');
 startMatches = content.match(/<!-- SKARP_GUIDELINES_START -->/g) || [];
 assert(startMatches.length === 1, `Expected exactly 1 START marker after second --append, got ${startMatches.length}`);
 
+// Test 7: Symlink support and symlink append refusal
+const tmpDir4 = fs.mkdtempSync(path.join(os.tmpdir(), 'skarp-symlink-test-'));
+const symlinkRes = runCli(['--dir', tmpDir4, '--agents', 'codex', '--symlink']);
+assert(symlinkRes.status === 0, 'Symlink install should succeed');
+assert(fs.lstatSync(path.join(tmpDir4, 'CODEX.md')).isSymbolicLink(), 'CODEX.md must be a symlink');
+
+// Refuse --append on symlink
+const appendSymlinkRes = runCli(['--dir', tmpDir4, '--agents', 'codex', '--append']);
+assert(appendSymlinkRes.status !== 0, 'Must refuse --append on symlinked target');
+assert(appendSymlinkRes.stderr.includes('Cannot --append to symlinked file'), 'Error message must specify cannot append');
+
 // Clean up
 fs.rmSync(tmpDir1, { recursive: true, force: true });
 fs.rmSync(tmpDir2, { recursive: true, force: true });
 fs.rmSync(tmpDir3, { recursive: true, force: true });
+fs.rmSync(tmpDir4, { recursive: true, force: true });
 
 console.log('All CLI tests passed successfully!');
