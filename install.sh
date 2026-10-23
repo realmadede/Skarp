@@ -16,7 +16,7 @@ TARGET_DIR="."
 AGENTS_INPUT="all"
 FORCE=false
 SYMLINK=false
-WITH_EXAMPLES=false
+WITH_EXAMPLES=true
 
 ALL_AGENTS=("universal" "claude" "cursor" "copilot" "windsurf" "cline" "aider" "gemini")
 
@@ -44,8 +44,8 @@ Usage:
 Options:
   -a, --agents <list>   Comma-separated list of agents to install (default: all)
                         Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
-  -d, --dir <path>      Target project directory (default: .)
-  -e, --examples        Also copy EXAMPLES.md reference file into target project
+  -d, --dir <path>      Target project directory (default: current directory .)
+  --no-examples         Skip copying EXAMPLES.md reference file (installed by default)
   -s, --symlink         Create symlinks instead of copying (requires local cloned repo)
   -f, --force           Overwrite existing rule files without prompting
   -l, --list            List all supported agents and their target files
@@ -93,6 +93,10 @@ while [[ $# -gt 0 ]]; do
     -d|--dir)
       TARGET_DIR="$2"
       shift 2
+      ;;
+    --no-examples)
+      WITH_EXAMPLES=false
+      shift
       ;;
     -e|--examples)
       WITH_EXAMPLES=true
