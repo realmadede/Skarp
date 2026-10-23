@@ -2,40 +2,53 @@
 """
 scripts/sync_adapters.py — Skarp Adapter Synchronization Tool
 
-Validates or updates all agent adapter files in adapters/ against the canonical AGENTS.md.
+Extracts the core principles from the canonical AGENTS.md and renders all agent adapters.
 Usage:
-    python3 scripts/sync_adapters.py          # Regenerates all adapters
-    python3 scripts/sync_adapters.py --check  # Validates all adapters (returns non-zero if out of sync)
+    python3 scripts/sync_adapters.py          # Regenerates all adapters from AGENTS.md
+    python3 scripts/sync_adapters.py --check  # Validates all adapters (exits non-zero if out of sync)
 """
 
 import sys
 import os
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_MD_PATH = REPO_ROOT / "AGENTS.md"
 ADAPTERS_DIR = REPO_ROOT / "adapters"
 
-CANONICAL_ONLINE_URL = "https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md"
+def extract_principles(agents_md_text: str) -> str:
+    """Extract sections 1 through 4 from AGENTS.md."""
+    match = re.search(r'(## 1\. Think Before Coding[\s\S]*?)(?=\n## 5\. Summary of Working Behavior|\Z)', agents_md_text)
+    if not match:
+        raise ValueError("Could not find principles 1-4 in AGENTS.md")
+    return match.group(1).strip()
 
-def extract_core_principles(agents_md_text: str) -> dict:
-    """Extract sections from canonical AGENTS.md."""
-    # We parse the principles text
-    lines = agents_md_text.splitlines()
-    tradeoff_text = "These guidelines intentionally bias toward caution over speed. For trivial tasks, use judgment."
-    return {
-        "full_text": agents_md_text,
-        "tradeoff": tradeoff_text
-    }
+def extract_summary(agents_md_text: str) -> str:
+    """Extract section 5 (Summary of Working Behavior) from AGENTS.md."""
+    match = re.search(r'(## 5\. Summary of Working Behavior[\s\S]*?)(?=\n## 6\. Examples & Reference|\Z)', agents_md_text)
+    if not match:
+        return ""
+    return match.group(1).strip()
+
+def extract_examples(agents_md_text: str) -> str:
+    """Extract section 6 (Examples & Reference) from AGENTS.md."""
+    match = re.search(r'(## 6\. Examples & Reference[\s\S]*?)$', agents_md_text)
+    if not match:
+        return ""
+    return match.group(1).strip()
 
 def generate_adapters(agents_text: str) -> dict:
-    """Generate expected content for each adapter file."""
-    
-    # Universal AGENTS.md is an exact clone of root AGENTS.md
-    universal_agents = agents_text
+    """Generate expected content for each adapter file using AGENTS.md as single source of truth."""
+    principles = extract_principles(agents_text)
+    summary = extract_summary(agents_text)
+    examples = extract_examples(agents_text)
+
+    # Universal AGENTS.md is identical to root AGENTS.md
+    universal_agents = agents_text.strip() + "\n"
 
     # Claude Code
-    claude = """# CLAUDE.md — Claude Code Guidelines
+    claude = f"""# CLAUDE.md — Claude Code Guidelines
 
 Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
 
@@ -43,83 +56,19 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
 
 ---
 
-## 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them — don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+{principles}
 
 ---
 
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: *"Would a senior engineer say this is overcomplicated?"* If yes, simplify.
+{summary}
 
 ---
 
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it — don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
----
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```text
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-## 5. Examples & Reference
-
-For concrete before-and-after demonstrations of these principles:
-- Local reference: `EXAMPLES.md` (if present in workspace)
-- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+{examples}
 """
 
     # Cursor .mdc
-    cursor_mdc = """---
+    cursor_mdc = f"""---
 description: Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and define verifiable success criteria.
 alwaysApply: true
 ---
@@ -128,141 +77,23 @@ alwaysApply: true
 
 Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+**Tradeoff:** These guidelines intentionally bias toward **caution over speed**. For trivial tasks, use judgment.
 
 ---
 
-## 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them — don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+{principles}
 
 ---
 
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+{summary}
 
 ---
 
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it — don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
----
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```text
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-## 5. Examples & Reference
-
-For concrete before-and-after demonstrations of these principles:
-- Local reference: `EXAMPLES.md` (if present in workspace)
-- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+{examples}
 """
 
-    # Cursor .cursorrules
-    cursor_rules = """# Cursor Rules — Karpathy Behavioral Guidelines
-
-Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
-
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
-
-## 1. Think Before Coding
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them — don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-**Minimum code that solves the problem. Nothing speculative.**
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-**Touch only what you must. Clean up only your own mess.**
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it — don't delete it.
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-**Define success criteria. Loop until verified.**
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
-## 5. Examples & Reference
-- Local reference: `EXAMPLES.md` (if present in workspace)
-- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
-"""
-
-    # GitHub Copilot
-    copilot = """# GitHub Copilot Instructions — Karpathy Behavioral Guidelines
+    # Cursor rules (.cursorrules - if retained)
+    cursor_rules = f"""# Cursor Rules — Karpathy Behavioral Guidelines
 
 Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
 
@@ -270,240 +101,132 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
 
 ---
 
-## 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before generating or suggesting code:
-- State your assumptions explicitly. If uncertain, ask rather than guess.
-- If multiple interpretations exist, present them — don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear or ambiguous, stop. Name what is confusing and ask.
+{principles}
 
 ---
 
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- Implement only requested functionality — no speculative features or unrequested configurability.
-- No abstractions for single-use code. Keep logic clear, concrete, and localized.
-- Do not add error handling for impossible edge cases.
-- If 200 lines could be 50 lines cleanly, rewrite it.
-- Ask yourself: *"Would a senior engineer say this is overcomplicated?"* If yes, simplify.
+{summary}
 
 ---
 
-## 3. Surgical Changes
+{examples}
+"""
 
-**Touch only what you must. Clean up only your own mess.**
+    # GitHub Copilot
+    copilot = f"""# GitHub Copilot Instructions — Karpathy Behavioral Guidelines
 
-When modifying existing code:
-- Do not "improve", reformat, or restyle adjacent code, comments, or imports unrelated to the task.
-- Do not refactor code that is not broken.
-- Match existing project idioms and naming conventions.
-- If you notice unrelated dead code, mention it in text — do not delete it.
-- Clean up unused imports, variables, or functions created by your own edits.
-- Every line changed must trace directly to the user's prompt.
+Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines intentionally bias toward **caution over speed**. For trivial tasks, use judgment.
 
 ---
 
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform prompts into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step work:
-1. State a brief verification plan: `[Step] → verify: [check]`
-2. Verify code after modifications.
+{principles}
 
 ---
 
-## 5. Examples & Reference
+{summary}
 
-For concrete before-and-after demonstrations of these principles:
-- Local reference: `EXAMPLES.md` (if present in workspace)
-- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
+---
+
+{examples}
 """
 
     # Windsurf
-    windsurf = """# Windsurf Cascade Rules — Karpathy Behavioral Guidelines
+    windsurf = f"""# Windsurf Cascade Rules — Karpathy Behavioral Guidelines
 
 Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
 
-**Tradeoff:** These guidelines intentionally bias toward caution over speed. For trivial tasks, use judgment.
+**Tradeoff:** These guidelines intentionally bias toward **caution over speed**. For trivial tasks, use judgment.
 
 ---
 
-## 1. Think Before Coding
-- State your assumptions explicitly before modifying files. If uncertain, ask.
-- If multiple interpretations exist, present them — do not pick silently.
-- If a simpler approach exists, propose it and push back against overengineering.
-- If context is missing or instructions are unclear, stop and ask.
+{principles}
 
-## 2. Simplicity First
-- Implement minimum code necessary. No speculative features or premature abstractions.
-- No abstractions for single-use logic.
-- Avoid defensive handling for impossible scenarios.
-- If 200 lines could be 50, simplify.
-- Test: Would a senior engineer consider this overcomplicated? If so, simplify.
+---
 
-## 3. Surgical Changes
-- Touch only what is strictly required for the prompt.
-- Do not reformat or clean up orthogonal code, comments, or whitespace.
-- Match existing project style, naming, and patterns.
-- Mention existing dead code rather than deleting it.
-- Remove orphaned imports or variables introduced by your own changes.
-- Every changed line must trace directly to the user's prompt.
+{summary}
 
-## 4. Goal-Driven Execution
-- Convert tasks into verifiable goals with feedback loops.
-- Use tests, linter commands, or terminal verification before considering tasks done.
-- For multi-step tasks, provide a step-by-step plan: `[Step] → verify: [check]`.
+---
 
-## 5. Examples & Reference
-- Local reference: `EXAMPLES.md` (if present in workspace)
-- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
+{examples}
 """
 
     # Cline / Roo Code
-    cline = """# Cline / Roo Code Rules — Karpathy Behavioral Guidelines
+    cline = f"""# Cline / Roo Code Rules — Karpathy Behavioral Guidelines
 
 Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
 
-**Tradeoff:** Bias toward caution over speed. For trivial tasks, use judgment.
+**Tradeoff:** These guidelines intentionally bias toward **caution over speed**. For trivial tasks, use judgment.
 
 ---
 
-## 1. Think Before Coding
-- State your assumptions explicitly. If uncertain, ask rather than guess.
-- Present multiple interpretations when ambiguity exists.
-- Push back when a simpler, safer approach is available.
-- If something is unclear or contradictory, stop and ask immediately.
+{principles}
 
-## 2. Simplicity First
-- Implement only what was requested. No speculative abstractions or unasked flexibility.
-- No abstractions for single-use code.
-- No defensive cascades for impossible scenarios.
-- If 200 lines could be 50, rewrite it.
-- Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+---
 
-## 3. Surgical Changes
-- Touch only what you must.
-- Never "improve" adjacent code, comments, or formatting.
-- Match existing project style and conventions.
-- Report pre-existing dead code instead of deleting it.
-- Clean up any orphan imports or functions created by your edits.
-- Every changed line must trace directly to the user's request.
+{summary}
 
-## 4. Goal-Driven Execution
-- Define verifiable success criteria upfront.
-- Prefer test-driven verification: reproduce bug/behavior with a test before fixing.
-- Formulate a brief plan for multi-step tasks:
-  1. [Step] → verify: [check]
-  2. [Step] → verify: [check]
-- Loop and verify until all checks pass.
+---
 
-## 5. Examples & Reference
-- Local reference: `EXAMPLES.md` (if present in workspace)
-- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
+{examples}
 """
 
     # Aider
-    aider = """# Aider Coding Conventions — Karpathy Behavioral Guidelines
+    aider = f"""# Aider Coding Conventions — Karpathy Behavioral Guidelines
 
 Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls.
 
-**Tradeoff:** Bias toward caution over speed.
+**Tradeoff:** These guidelines intentionally bias toward **caution over speed**. For trivial tasks, use judgment.
 
 ---
 
-## 1. Think Before Coding
-- State assumptions explicitly. If uncertain about user intent or architecture, ask before modifying files.
-- Surface multiple interpretations rather than choosing one silently.
-- Push back when a simpler solution exists.
-- Stop and request clarification if instructions or context are ambiguous.
+{principles}
 
-## 2. Simplicity First
-- Minimum code that solves the problem. Nothing speculative.
-- No single-use abstractions or unwanted configurability.
-- If 200 lines could be 50, rewrite it.
-- Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+---
 
-## 3. Surgical Changes
-- Touch only what is strictly required. Clean up only your own mess.
-- Do not reformat or edit orthogonal code or comments.
-- Follow existing codebase style and patterns.
-- Mention pre-existing dead code instead of deleting it.
-- Remove imports and variables that your changes made unused.
-- Every changed line must trace directly to the user's request.
+{summary}
 
-## 4. Goal-Driven Execution
-- Convert tasks into verifiable goals.
-- Run tests and linters to verify changes before concluding.
-- For multi-step tasks, execute systematically with explicit verification steps.
+---
 
-## 5. Examples & Reference
-- Local reference: `EXAMPLES.md` (if present in workspace)
-- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
+{examples}
 """
 
-    # Gemini
-    gemini = """# GEMINI.md — Gemini CLI & Antigravity Guidelines
+    # Gemini CLI / Antigravity
+    gemini = f"""# GEMINI.md — Gemini CLI & Antigravity Guidelines
 
 Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls.
 
-**Tradeoff:** Bias toward caution over speed. For trivial tasks, use judgment.
+**Tradeoff:** These guidelines intentionally bias toward **caution over speed**. For trivial tasks, use judgment.
 
 ---
 
-## 1. Think Before Coding
-- State assumptions explicitly. If uncertain, ask before writing code.
-- If multiple interpretations exist, present tradeoffs instead of silently deciding.
-- Push back when a simpler, more direct approach exists.
-- Stop and ask when requirements or codebase patterns are confusing.
+{principles}
 
-## 2. Simplicity First
-- Minimum code that solves the problem. Nothing speculative.
-- No abstractions for single-use logic or speculative extensibility.
-- No defensive boilerplate for impossible scenarios.
-- If 200 lines could be 50, rewrite it.
-- Senior engineer test: Would a senior engineer say this is overcomplicated? If yes, simplify.
+---
 
-## 3. Surgical Changes
-- Touch only what is strictly required. Clean up only your own mess.
-- Never "improve" or reformat adjacent code, comments, or imports.
-- Match existing project style, naming conventions, and patterns.
-- If you notice unrelated dead code, note it to the user — do not delete it.
-- Remove orphans (unused imports/variables) caused by your changes.
-- Every changed line must trace directly to the prompt.
+{summary}
 
-## 4. Goal-Driven Execution
-- Define verifiable success criteria upfront.
-- Transform tasks into feedback loops (write/run tests or verification commands).
-- For multi-step tasks, provide and execute a brief plan: `[Step] → verify: [check]`.
-- Verify each step before proceeding.
+---
 
-## 5. Examples & Reference
-- Local reference: `EXAMPLES.md` (if present in workspace)
-- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
+{examples}
 """
 
-    return {
+    adapters = {
         ADAPTERS_DIR / "universal" / "AGENTS.md": universal_agents,
-        ADAPTERS_DIR / "claude" / "CLAUDE.md": claude,
-        ADAPTERS_DIR / "cursor" / "karpathy-guidelines.mdc": cursor_mdc,
-        ADAPTERS_DIR / "cursor" / ".cursorrules": cursor_rules,
-        ADAPTERS_DIR / "copilot" / "copilot-instructions.md": copilot,
-        ADAPTERS_DIR / "windsurf" / ".windsurfrules": windsurf,
-        ADAPTERS_DIR / "cline" / ".clinerules": cline,
-        ADAPTERS_DIR / "aider" / "CONVENTIONS.md": aider,
-        ADAPTERS_DIR / "gemini" / "GEMINI.md": gemini,
+        ADAPTERS_DIR / "claude" / "CLAUDE.md": claude.strip() + "\n",
+        ADAPTERS_DIR / "cursor" / "karpathy-guidelines.mdc": cursor_mdc.strip() + "\n",
+        ADAPTERS_DIR / "copilot" / "copilot-instructions.md": copilot.strip() + "\n",
+        ADAPTERS_DIR / "windsurf" / ".windsurfrules": windsurf.strip() + "\n",
+        ADAPTERS_DIR / "cline" / ".clinerules": cline.strip() + "\n",
+        ADAPTERS_DIR / "aider" / "CONVENTIONS.md": aider.strip() + "\n",
+        ADAPTERS_DIR / "gemini" / "GEMINI.md": gemini.strip() + "\n",
     }
+
+    if (ADAPTERS_DIR / "cursor" / ".cursorrules").exists():
+        adapters[ADAPTERS_DIR / "cursor" / ".cursorrules"] = cursor_rules.strip() + "\n"
+
+    return adapters
 
 def main():
     check_mode = "--check" in sys.argv
