@@ -139,6 +139,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "$SYMLINK" == true && "$APPEND" == true ]]; then
+  echo "Error: Cannot combine --symlink and --append." >&2
+  exit 1
+fi
+
 # Resolve agent list
 SELECTED_AGENTS=()
 if [[ "$AGENTS_INPUT" == "all" ]]; then
@@ -278,6 +283,11 @@ install_file() {
   local local_source=""
   if [[ -n "$SCRIPT_DIR" && -f "$SCRIPT_DIR/$adapter_path" ]]; then
     local_source="$SCRIPT_DIR/$adapter_path"
+  fi
+
+  if [[ -L "$full_target" && "$APPEND" == true ]]; then
+    echo "Error: Cannot --append to symlinked file $rel_target." >&2
+    exit 1
   fi
 
   if [[ -f "$full_target" ]]; then
