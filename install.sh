@@ -10,7 +10,10 @@
 set -euo pipefail
 
 REPO_RAW_URL="https://raw.githubusercontent.com/realmadede/Skarp/main"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")"
+SCRIPT_DIR=""
+if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 
 TARGET_DIR="."
 AGENTS_INPUT="all"
