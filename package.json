@@ -7,7 +7,18 @@
     "skarp": "bin/skarp.js"
   },
   "scripts": {
-    "test": "node bin/skarp.js --help"
+    "test": "node scripts/test.js"
+  },
+  "files": [
+    "bin",
+    "adapters",
+    "EXAMPLES.md",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
   },
   "repository": {
     "type": "git",
