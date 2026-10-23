@@ -121,8 +121,24 @@ async function installFile(targetDir, relTarget, adapterPath, { force, append })
     }
   }
 
-  fs.writeFileSync(fullTarget, content, 'utf8');
+  const wrapped = wrapSkarpContent(content);
+  fs.writeFileSync(fullTarget, wrapped, 'utf8');
   console.log(`  [OK]      ${relTarget}`);
+}
+
+function wrapSkarpContent(content) {
+  const startMarker = '<!-- SKARP_GUIDELINES_START -->';
+  const endMarker = '<!-- SKARP_GUIDELINES_END -->';
+  if (content.includes(startMarker)) return content;
+
+  const match = content.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n)([\s\S]*)$/);
+  if (match) {
+    const frontmatter = match[1];
+    const body = match[2].trim();
+    return `${frontmatter}\n${startMarker}\n${body}\n${endMarker}\n`;
+  } else {
+    return `${startMarker}\n${content.trim()}\n${endMarker}\n`;
+  }
 }
 
 function uninstallFile(targetDir, relTarget) {
@@ -133,14 +149,21 @@ function uninstallFile(targetDir, relTarget) {
   const endMarker = '<!-- SKARP_GUIDELINES_END -->';
   const existingText = fs.readFileSync(fullTarget, 'utf8');
 
-  if (existingText.includes(startMarker)) {
-    const regex = new RegExp(`\\n*${escapeRegex(startMarker)}[\\s\\S]*?${escapeRegex(endMarker)}\\n*`, 'g');
-    const updated = existingText.replace(regex, '').trim() + '\n';
-    fs.writeFileSync(fullTarget, updated, 'utf8');
-    console.log(`  [CLEANED] ${relTarget} (removed Skarp block)`);
-  } else {
+  if (!existingText.includes(startMarker)) {
+    console.log(`  [SKIP]    ${relTarget} not installed by Skarp`);
+    return;
+  }
+
+  const regex = new RegExp(`\\n*${escapeRegex(startMarker)}[\\s\\S]*?${escapeRegex(endMarker)}\\n*`, 'g');
+  const remaining = existingText.replace(regex, '').trim();
+  const bodyWithoutFm = remaining.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
+
+  if (remaining === '' || bodyWithoutFm === '') {
     fs.unlinkSync(fullTarget);
     console.log(`  [REMOVED] ${relTarget}`);
+  } else {
+    fs.writeFileSync(fullTarget, remaining + '\n', 'utf8');
+    console.log(`  [CLEANED] ${relTarget} (removed Skarp block)`);
   }
 
   const parentDir = path.dirname(fullTarget);

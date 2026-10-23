@@ -153,6 +153,29 @@ fi
 mkdir -p "$TARGET_DIR"
 TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
 
+wrap_skarp_content() {
+  local content="$1"
+  local start_marker="<!-- SKARP_GUIDELINES_START -->"
+  local end_marker="<!-- SKARP_GUIDELINES_END -->"
+
+  if [[ "$content" == *"$start_marker"* ]]; then
+    printf "%s\n" "$content"
+    return
+  fi
+
+  python3 -c "
+import sys, re
+content = sys.argv[1]
+start = sys.argv[2]
+end = sys.argv[3]
+m = re.match(r'^(---\r?\n.*?\r?\n---\r?\n)(.*)$', content, re.DOTALL)
+if m:
+    sys.stdout.write(f'{m.group(1)}\n{start}\n{m.group(2).strip()}\n{end}\n')
+else:
+    sys.stdout.write(f'{start}\n{content.strip()}\n{end}\n')
+" "$content" "$start_marker" "$end_marker"
+}
+
 uninstall_file() {
   local rel_target="$1"
   local full_target="$TARGET_DIR/$rel_target"
@@ -164,21 +187,33 @@ uninstall_file() {
   local start_marker="<!-- SKARP_GUIDELINES_START -->"
   local end_marker="<!-- SKARP_GUIDELINES_END -->"
 
-  if grep -q "<!-- SKARP_GUIDELINES_START -->" "$full_target"; then
-    python3 -c "
-import sys, re
+  if ! grep -q "$start_marker" "$full_target"; then
+    echo "  [SKIP] $rel_target not installed by Skarp"
+    return
+  fi
+
+  local status
+  status="$(python3 -c "
+import sys, os, re
 path, start, end = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(path, 'r', encoding='utf-8') as f:
     text = f.read()
 pattern = re.compile(rf'\n*{re.escape(start)}.*?{re.escape(end)}\n*', re.DOTALL)
-new_text = pattern.sub('', text)
-with open(path, 'w', encoding='utf-8') as f:
-    f.write(new_text.strip() + '\n')
-" "$full_target" "$start_marker" "$end_marker" 2>/dev/null
-    echo "  [CLEANED] $rel_target (removed Skarp block)"
-  else
-    rm -f "$full_target"
+remaining = pattern.sub('', text).strip()
+body_without_fm = re.sub(r'^---\r?\n.*?\r?\n---\r?\n?', '', remaining, flags=re.DOTALL).strip()
+if remaining == '' or body_without_fm == '':
+    os.remove(path)
+    sys.stdout.write('REMOVED')
+else:
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(remaining + '\n')
+    sys.stdout.write('CLEANED')
+" "$full_target" "$start_marker" "$end_marker")"
+
+  if [[ "$status" == "REMOVED" ]]; then
     echo "  [REMOVED] $rel_target"
+  elif [[ "$status" == "CLEANED" ]]; then
+    echo "  [CLEANED] $rel_target (removed Skarp block)"
   fi
 
   local parent_dir
@@ -285,22 +320,25 @@ with open(path, 'w', encoding='utf-8') as f:
     fi
   fi
 
+  local raw_content=""
   if [[ -n "$local_source" ]]; then
-    cp "$local_source" "$full_target"
-    echo "  [OK]   $rel_target (from local $adapter_path)"
+    raw_content="$(cat "$local_source")"
   else
     local remote_url="$REPO_RAW_URL/$adapter_path"
     if command -v curl >/dev/null 2>&1; then
-      curl -fsSL "$remote_url" -o "$full_target"
-      echo "  [OK]   $rel_target (downloaded from remote)"
+      raw_content="$(curl -fsSL "$remote_url")"
     elif command -v wget >/dev/null 2>&1; then
-      wget -qO "$full_target" "$remote_url"
-      echo "  [OK]   $rel_target (downloaded from remote)"
+      raw_content="$(wget -qO- "$remote_url")"
     else
       echo "  [ERROR] Neither curl nor wget found to download $remote_url" >&2
       return 1
     fi
   fi
+
+  local wrapped_content
+  wrapped_content="$(wrap_skarp_content "$raw_content")"
+  printf "%s\n" "$wrapped_content" > "$full_target"
+  echo "  [OK]   $rel_target"
 }
 
 for agent in "${SELECTED_AGENTS[@]}"; do

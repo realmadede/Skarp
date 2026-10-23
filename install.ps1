@@ -119,6 +119,24 @@ if (-not $ResolvedTargetDir) {
     $ResolvedTargetDir = $ResolvedTargetDir.Path
 }
 
+function Wrap-SkarpContent {
+    param ([string]$Content)
+    $StartMarker = "<!-- SKARP_GUIDELINES_START -->"
+    $EndMarker = "<!-- SKARP_GUIDELINES_END -->"
+
+    if ($Content.Contains($StartMarker)) {
+        return $Content
+    }
+
+    if ($Content -match "^(---[\r\n]+[\s\S]*?[\r\n]+---[\r\n]*)([\s\S]*)$") {
+        $Frontmatter = $Matches[1]
+        $Body = $Matches[2].Trim()
+        return "$Frontmatter`r`n$StartMarker`r`n$Body`r`n$EndMarker`r`n"
+    } else {
+        return "$StartMarker`r`n$($Content.Trim())`r`n$EndMarker`r`n"
+    }
+}
+
 function Uninstall-SkarpFile {
     param ([string]$RelTarget)
 
@@ -129,14 +147,21 @@ function Uninstall-SkarpFile {
     $EndMarker = "<!-- SKARP_GUIDELINES_END -->"
     $ExistingText = Get-Content -Path $FullTarget -Raw -Encoding UTF8
 
-    if ($ExistingText -match [regex]::Escape($StartMarker)) {
-        $Pattern = "\r?\n*" + [regex]::Escape($StartMarker) + ".*?" + [regex]::Escape($EndMarker) + "\r?\n*"
-        $NewText = [regex]::Replace($ExistingText, $Pattern, "", [System.Text.RegularExpressions.RegexOptions]::Singleline).Trim() + "`r`n"
-        Set-Content -Path $FullTarget -Value $NewText -Encoding UTF8
-        Write-Host "  [CLEANED] $RelTarget (removed Skarp block)"
-    } else {
+    if (-not ($ExistingText -match [regex]::Escape($StartMarker))) {
+        Write-Host "  [SKIP]    $RelTarget not installed by Skarp"
+        return
+    }
+
+    $Pattern = "\r?\n*" + [regex]::Escape($StartMarker) + ".*?" + [regex]::Escape($EndMarker) + "\r?\n*"
+    $Remaining = [regex]::Replace($ExistingText, $Pattern, "", [System.Text.RegularExpressions.RegexOptions]::Singleline).Trim()
+    $BodyWithoutFm = [regex]::Replace($Remaining, "^---[\r\n]+[\s\S]*?[\r\n]+---[\r\n]*", "", [System.Text.RegularExpressions.RegexOptions]::Singleline).Trim()
+
+    if ($Remaining -eq "" -or $BodyWithoutFm -eq "") {
         Remove-Item -Path $FullTarget -Force
         Write-Host "  [REMOVED] $RelTarget"
+    } else {
+        Set-Content -Path $FullTarget -Value ($Remaining + "`r`n") -Encoding UTF8
+        Write-Host "  [CLEANED] $RelTarget (removed Skarp block)"
     }
 
     $ParentFolder = Split-Path -Parent $FullTarget
@@ -226,7 +251,8 @@ function Install-SkarpFile {
         }
     }
 
-    Set-Content -Path $FullTarget -Value $Content -Encoding UTF8
+    $Wrapped = Wrap-SkarpContent $Content
+    Set-Content -Path $FullTarget -Value $Wrapped -Encoding UTF8
     Write-Host "  [OK]      $RelTarget"
 }
 
