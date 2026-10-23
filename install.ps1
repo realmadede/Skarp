@@ -109,6 +109,12 @@ if ($Agents -contains "all") {
             }
         }
     }
+    foreach ($agent in $Selected) {
+        if ($AllAgents -notcontains $agent) {
+            Write-Error "Unknown agent: $agent. Valid agents: $($AllAgents -join ', '), all"
+            exit 1
+        }
+    }
 }
 
 $ResolvedTargetDir = (Resolve-Path -Path $Dir -ErrorAction SilentlyContinue)
@@ -169,6 +175,12 @@ function Uninstall-SkarpFile {
         $Remaining = Get-ChildItem -Path $ParentFolder -Force -Recurse
         if (-not $Remaining) {
             Remove-Item -Path $ParentFolder -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+    foreach ($agent in $Selected) {
+        if ($AllAgents -notcontains $agent) {
+            Write-Error "Unknown agent: $agent. Valid agents: $($AllAgents -join ', '), all"
+            exit 1
         }
     }
 }

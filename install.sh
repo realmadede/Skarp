@@ -148,6 +148,17 @@ else
       SELECTED_AGENTS+=("$agent_trimmed")
     fi
   done
+  for agent in "${SELECTED_AGENTS[@]}"; do
+    case "$agent" in
+      universal|claude|cursor|copilot|windsurf|cline|aider|gemini)
+        ;;
+      *)
+        echo "Error: Unknown agent: $agent" >&2
+        echo "Valid agents: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all" >&2
+        exit 1
+        ;;
+    esac
+  done
 fi
 
 mkdir -p "$TARGET_DIR"

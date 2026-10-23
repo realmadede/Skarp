@@ -213,15 +213,42 @@ async function main() {
     } else if (arg === '--no-examples') {
       withExamples = false;
     } else if (arg === '-d' || arg === '--dir') {
+      if (i + 1 >= args.length || args[i + 1].startsWith('-')) {
+        console.error('Error: Missing value for --dir option.');
+        process.exit(1);
+      }
       targetDir = path.resolve(process.cwd(), args[++i]);
     } else if (arg === '-a' || arg === '--agents') {
-      agentsList = args[++i].split(',').map(s => s.trim().toLowerCase());
+      if (i + 1 >= args.length || args[i + 1].startsWith('-')) {
+        console.error('Error: Missing value for --agents option.');
+        process.exit(1);
+      }
+      agentsList = args[++i].split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else {
+      console.error(`Error: Unknown argument: ${arg}`);
+      console.error('Run with -h or --help for usage information.');
+      process.exit(1);
     }
   }
 
-  const selectedKeys = agentsList.includes('all')
-    ? Object.keys(AGENT_MAPPINGS)
-    : agentsList.filter(k => AGENT_MAPPINGS[k]);
+  const validAgents = Object.keys(AGENT_MAPPINGS);
+  if (agentsList.length === 0) {
+    console.error('Error: No agents specified.');
+    process.exit(1);
+  }
+
+  let selectedKeys = [];
+  if (agentsList.includes('all')) {
+    selectedKeys = validAgents;
+  } else {
+    const invalidAgents = agentsList.filter(a => !AGENT_MAPPINGS[a]);
+    if (invalidAgents.length > 0) {
+      console.error(`Error: Unknown agent(s): ${invalidAgents.join(', ')}`);
+      console.error(`Valid agents: ${validAgents.join(', ')}, all`);
+      process.exit(1);
+    }
+    selectedKeys = agentsList;
+  }
 
   if (uninstall) {
     console.log(`Uninstalling Skarp guidelines from: ${targetDir}`);
