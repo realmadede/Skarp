@@ -284,19 +284,21 @@ install_file() {
       fi
 
       if grep -q "<!-- SKARP_GUIDELINES_START -->" "$full_target"; then
+        if ! command -v python3 >/dev/null 2>&1; then
+          echo "Error: python3 is required to update $rel_target." >&2
+          exit 1
+        fi
         python3 -c "
 import sys, re
 path, content, start, end = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 with open(path, 'r', encoding='utf-8') as f:
     text = f.read()
 pattern = re.compile(rf'{re.escape(start)}.*?{re.escape(end)}', re.DOTALL)
-block = f'{start}\n{content}\n{end}'
-new_text = pattern.sub(block, text)
+block = f'{start}\n{content.strip()}\n{end}'
+new_text = pattern.sub(lambda m: block, text)
 with open(path, 'w', encoding='utf-8') as f:
     f.write(new_text)
-" "$full_target" "$content" "$start_marker" "$end_marker" 2>/dev/null || {
-          printf "\n\n%s\n%s\n%s\n" "$start_marker" "$content" "$end_marker" >> "$full_target"
-        }
+" "$full_target" "$content" "$start_marker" "$end_marker"
         echo "  [UPDATED] $rel_target (refreshed existing Skarp block)"
         return
       else
