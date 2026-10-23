@@ -54,18 +54,40 @@ jobs:
           grep -q "Existing Project Instructions" "$TEST_DIR/CLAUDE.md"
           ! grep -q "SKARP_GUIDELINES_START" "$TEST_DIR/CLAUDE.md"
 
+      - name: Test install.sh (Regression tests: user file survival, single marker, invalid agents)
+        run: |
+          # 1. Invalid agent name exits non-zero
+          ! ./install.sh --agents invalid_agent
+
+          # 2. User file survives uninstall when installed without --append
+          USER_DIR=$(mktemp -d)
+          echo "# Custom Project Instructions" > "$USER_DIR/CLAUDE.md"
+          ./install.sh --dir "$USER_DIR" --agents claude
+          ./install.sh --dir "$USER_DIR" --uninstall
+          test -f "$USER_DIR/CLAUDE.md"
+          [ "$(cat "$USER_DIR/CLAUDE.md")" = "# Custom Project Instructions" ]
+
+          # 3. Install then --append: exactly one START marker
+          APPEND_DIR=$(mktemp -d)
+          ./install.sh --dir "$APPEND_DIR" --agents claude
+          ./install.sh --dir "$APPEND_DIR" --agents claude --append
+          [ "$(grep -c '<!-- SKARP_GUIDELINES_START -->' "$APPEND_DIR/CLAUDE.md")" -eq 1 ]
+          ./install.sh --dir "$APPEND_DIR" --agents claude --append
+          [ "$(grep -c '<!-- SKARP_GUIDELINES_START -->' "$APPEND_DIR/CLAUDE.md")" -eq 1 ]
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Test Node.js CLI (bin/skarp.js)
+      - name: Test Node.js CLI (bin/skarp.js and npm test)
         run: |
           node bin/skarp.js --help
           TEST_DIR=$(mktemp -d)
           node bin/skarp.js --dir "$TEST_DIR" --agents copilot,windsurf
           test -f "$TEST_DIR/.github/copilot-instructions.md"
           test -f "$TEST_DIR/.windsurfrules"
+          npm test
 
   test-windows:
     name: Test on Windows PowerShell
@@ -85,3 +107,25 @@ jobs:
           if (-not (Test-Path (Join-Path $TestDir.FullName "EXAMPLES.md"))) { throw "EXAMPLES.md missing" }
           .\install.ps1 -Dir $TestDir.FullName -Uninstall
           if (Test-Path (Join-Path $TestDir.FullName "CLAUDE.md")) { throw "CLAUDE.md should be removed" }
+
+          # User file survives uninstall test
+          $UserTestDir = New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\skarp-user-test"
+          $UserFile = Join-Path $UserTestDir.FullName "CLAUDE.md"
+          [System.IO.File]::WriteAllText($UserFile, "# Pre-existing User Content`n")
+          .\install.ps1 -Dir $UserTestDir.FullName -Agents claude
+          .\install.ps1 -Dir $UserTestDir.FullName -Uninstall
+          if (-not (Test-Path $UserFile)) { throw "User CLAUDE.md was deleted!" }
+          $content = [System.IO.File]::ReadAllText($UserFile)
+          if ($content.Trim() -ne "# Pre-existing User Content") { throw "User content modified!" }
+
+          # -Append test and duplicate marker prevention
+          .\install.ps1 -Dir $UserTestDir.FullName -Agents claude -Append
+          $content = [System.IO.File]::ReadAllText($UserFile)
+          if (-not ($content -match "Pre-existing User Content")) { throw "User content lost on append" }
+          if (-not ($content -match "<!-- SKARP_GUIDELINES_START -->")) { throw "Guidelines marker missing" }
+          .\install.ps1 -Dir $UserTestDir.FullName -Agents claude -Append
+          $matches = [regex]::Matches([System.IO.File]::ReadAllText($UserFile), "<!-- SKARP_GUIDELINES_START -->")
+          if ($matches.Count -ne 1) { throw "Duplicate guidelines marker found: $($matches.Count)" }
+          .\install.ps1 -Dir $UserTestDir.FullName -Uninstall
+          $cleanedContent = [System.IO.File]::ReadAllText($UserFile)
+          if ($cleanedContent.Trim() -ne "# Pre-existing User Content") { throw "Content not cleaned to original" }
