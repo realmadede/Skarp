@@ -50,7 +50,8 @@ Options:
   -a, --agents <list>   Comma-separated list of agents to install (default: all)
                         Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
   -d, --dir <path>      Target project directory (default: current directory .)
-  --no-examples         Skip copying EXAMPLES.md reference file (installed by default)
+  -e, --examples        Include EXAMPLES.md reference file (enabled by default)
+  --no-examples         Skip copying EXAMPLES.md reference file
   -s, --symlink         Create symlinks instead of copying (requires local cloned repo)
   -A, --append          Append/merge guidelines into existing files instead of skipping
   -u, --uninstall       Uninstall guidelines from target directory (cleans merged blocks)
