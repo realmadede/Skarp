@@ -34,3 +34,7 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
   1. [Step] → verify: [check]
   2. [Step] → verify: [check]
 - Loop and verify until all checks pass.
+
+## 5. Examples & Reference
+- Local reference: `EXAMPLES.md` (if present in workspace)
+- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md

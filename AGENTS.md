@@ -72,3 +72,11 @@ These guidelines are functioning correctly when:
 - **No rewrite cycles**: Code is simple, idiomatic, and correct on the first attempt.
 - **Clarification precedes implementation**: Questions are asked before making mistakes, not during cleanup.
 - **Tests and checks verify completion**: Changes are accompanied by concrete verification evidence.
+
+---
+
+## 6. Examples & Reference
+
+For concrete before-and-after code demonstrations of these four principles (including anti-patterns vs. recommended behaviors):
+- **Local Reference:** `EXAMPLES.md` (if present in the workspace)
+- **Canonical Online Reference:** [https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md](https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md)

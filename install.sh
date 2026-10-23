@@ -16,6 +16,7 @@ TARGET_DIR="."
 AGENTS_INPUT="all"
 FORCE=false
 SYMLINK=false
+WITH_EXAMPLES=false
 
 ALL_AGENTS=("universal" "claude" "cursor" "copilot" "windsurf" "cline" "aider" "gemini")
 
@@ -44,6 +45,7 @@ Options:
   -a, --agents <list>   Comma-separated list of agents to install (default: all)
                         Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
   -d, --dir <path>      Target project directory (default: .)
+  -e, --examples        Also copy EXAMPLES.md reference file into target project
   -s, --symlink         Create symlinks instead of copying (requires local cloned repo)
   -f, --force           Overwrite existing rule files without prompting
   -l, --list            List all supported agents and their target files
@@ -91,6 +93,10 @@ while [[ $# -gt 0 ]]; do
     -d|--dir)
       TARGET_DIR="$2"
       shift 2
+      ;;
+    -e|--examples)
+      WITH_EXAMPLES=true
+      shift
       ;;
     -s|--symlink)
       SYMLINK=true
@@ -213,6 +219,10 @@ for agent in "${SELECTED_AGENTS[@]}"; do
       ;;
   esac
 done
+
+if [[ "$WITH_EXAMPLES" == true ]]; then
+  install_file "examples" "EXAMPLES.md" "EXAMPLES.md"
+fi
 
 echo ""
 echo "Installation complete! Skarp guidelines are now active for selected agents."

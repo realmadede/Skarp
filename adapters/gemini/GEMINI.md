@@ -32,3 +32,7 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
 - Transform tasks into feedback loops (write/run tests or verification commands).
 - For multi-step tasks, provide and execute a brief plan: `[Step] → verify: [check]`.
 - Verify each step before proceeding.
+
+## 5. Examples & Reference
+- Local reference: `EXAMPLES.md` (if present in workspace)
+- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md

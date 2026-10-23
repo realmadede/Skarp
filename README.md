@@ -56,8 +56,8 @@ Run the installer directly into your target project:
 # Install for all supported agents in current directory:
 curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash
 
-# Or install for specific agents only:
-curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash -s -- --agents cursor,claude,universal
+# Or install for specific agents and include the local EXAMPLES.md reference:
+curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash -s -- --agents cursor,claude,universal --examples
 
 # Or install into a specific directory:
 curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash -s -- --dir /path/to/my-project --agents copilot,windsurf

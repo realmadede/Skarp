@@ -56,3 +56,11 @@ Transform prompts into verifiable goals:
 For multi-step work:
 1. State a brief verification plan: `[Step] → verify: [check]`
 2. Verify code after modifications.
+
+---
+
+## 5. Examples & Reference
+
+For concrete before-and-after demonstrations of these principles:
+- Local reference: `EXAMPLES.md` (if present in workspace)
+- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md

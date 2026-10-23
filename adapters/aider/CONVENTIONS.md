@@ -30,3 +30,7 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
 - Convert tasks into verifiable goals.
 - Run tests and linters to verify changes before concluding.
 - For multi-step tasks, execute systematically with explicit verification steps.
+
+## 5. Examples & Reference
+- Local reference: `EXAMPLES.md` (if present in workspace)
+- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md

@@ -75,4 +75,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
+## 5. Examples & Reference
+
+For concrete before-and-after demonstrations of these principles:
+- Local reference: `EXAMPLES.md` (if present in workspace)
+- Online reference: https://github.com/realmadede/Skarp/blob/main/EXAMPLES.md
+
+---
+
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
