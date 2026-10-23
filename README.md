@@ -93,7 +93,7 @@ In PowerShell on Windows:
 irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1 | iex
 
 # Or specify agents and append mode:
-irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1 | iex -Agents cursor,claude -Append
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1))) -Agents cursor,claude -Append
 ```
 
 ---
@@ -164,7 +164,7 @@ curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | 
 ./install.sh --uninstall
 
 # Via Windows PowerShell:
-irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1 | iex -Uninstall
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1))) -Uninstall
 ```
 
 ### Option 2: Manual Removal
