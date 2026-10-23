@@ -1,0 +1,33 @@
+# Windsurf Cascade Rules — Karpathy Behavioral Guidelines
+
+Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines intentionally bias toward caution over speed. For trivial tasks, use judgment.
+
+---
+
+## 1. Think Before Coding
+- State your assumptions explicitly before modifying files. If uncertain, ask.
+- If multiple interpretations exist, present them — do not pick silently.
+- If a simpler approach exists, propose it and push back against overengineering.
+- If context is missing or instructions are unclear, stop and ask.
+
+## 2. Simplicity First
+- Implement minimum code necessary. No speculative features or premature abstractions.
+- No abstractions for single-use logic.
+- Avoid defensive handling for impossible scenarios.
+- If 200 lines could be 50, simplify.
+- Test: Would a senior engineer consider this overcomplicated? If so, simplify.
+
+## 3. Surgical Changes
+- Touch only what is strictly required for the prompt.
+- Do not reformat or clean up orthogonal code, comments, or whitespace.
+- Match existing project style, naming, and patterns.
+- Mention existing dead code rather than deleting it.
+- Remove orphaned imports or variables introduced by your own changes.
+- Every changed line must trace directly to the user's prompt.
+
+## 4. Goal-Driven Execution
+- Convert tasks into verifiable goals with feedback loops.
+- Use tests, linter commands, or terminal verification before considering tasks done.
+- For multi-step tasks, provide a step-by-step plan: `[Step] → verify: [check]`.

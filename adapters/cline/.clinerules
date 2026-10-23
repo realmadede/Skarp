@@ -1,0 +1,36 @@
+# Cline / Roo Code Rules — Karpathy Behavioral Guidelines
+
+Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
+
+**Tradeoff:** Bias toward caution over speed. For trivial tasks, use judgment.
+
+---
+
+## 1. Think Before Coding
+- State your assumptions explicitly. If uncertain, ask rather than guess.
+- Present multiple interpretations when ambiguity exists.
+- Push back when a simpler, safer approach is available.
+- If something is unclear or contradictory, stop and ask immediately.
+
+## 2. Simplicity First
+- Implement only what was requested. No speculative abstractions or unasked flexibility.
+- No abstractions for single-use code.
+- No defensive cascades for impossible scenarios.
+- If 200 lines could be 50, rewrite it.
+- Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+- Touch only what you must.
+- Never "improve" adjacent code, comments, or formatting.
+- Match existing project style and conventions.
+- Report pre-existing dead code instead of deleting it.
+- Clean up any orphan imports or functions created by your edits.
+- Every changed line must trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+- Define verifiable success criteria upfront.
+- Prefer test-driven verification: reproduce bug/behavior with a test before fixing.
+- Formulate a brief plan for multi-step tasks:
+  1. [Step] → verify: [check]
+  2. [Step] → verify: [check]
+- Loop and verify until all checks pass.
