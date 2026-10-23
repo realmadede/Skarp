@@ -41,7 +41,7 @@ Skarp comes with pre-configured adapters for all major tools located in [`adapte
 | :--- | :--- | :--- |
 | **Universal Standard** | `AGENTS.md` | [`adapters/universal/AGENTS.md`](adapters/universal/AGENTS.md) |
 | **Claude Code** | `CLAUDE.md` | [`adapters/claude/CLAUDE.md`](adapters/claude/CLAUDE.md) |
-| **Cursor** | `.cursor/rules/karpathy-guidelines.mdc` or `.cursorrules` | [`adapters/cursor/`](adapters/cursor/) |
+| **Cursor** | `.cursor/rules/karpathy-guidelines.mdc` | [`adapters/cursor/karpathy-guidelines.mdc`](adapters/cursor/karpathy-guidelines.mdc) |
 | **GitHub Copilot** | `.github/copilot-instructions.md` | [`adapters/copilot/copilot-instructions.md`](adapters/copilot/copilot-instructions.md) |
 | **Windsurf (Cascade)** | `.windsurfrules` | [`adapters/windsurf/.windsurfrules`](adapters/windsurf/.windsurfrules) |
 | **Cline / Roo Code** | `.clinerules` | [`adapters/cline/.clinerules`](adapters/cline/.clinerules) |
@@ -129,7 +129,7 @@ curl -o .windsurfrules https://raw.githubusercontent.com/realmadede/Skarp/main/a
 
 ## Appending to Existing Project Rules
 
-If your repository already has an existing `CLAUDE.md`, `.windsurfrules`, or `.cursorrules`, pass `--append` (or `-A`):
+If your repository already has an existing `CLAUDE.md`, `.windsurfrules`, or `.cursor/rules/karpathy-guidelines.mdc`, pass `--append` (or `-A`):
 
 ```bash
 ./install.sh --append

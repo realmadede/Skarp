@@ -92,26 +92,6 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
 {examples}
 """
 
-    # Cursor rules (.cursorrules - if retained)
-    cursor_rules = f"""# Cursor Rules — Karpathy Behavioral Guidelines
-
-Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej Karpathy's observations on LLM coding pitfalls. Merge with project-specific instructions as needed.
-
-**Tradeoff:** These guidelines intentionally bias toward **caution over speed**. For trivial tasks, use judgment.
-
----
-
-{principles}
-
----
-
-{summary}
-
----
-
-{examples}
-"""
-
     # GitHub Copilot
     copilot = f"""# GitHub Copilot Instructions — Karpathy Behavioral Guidelines
 
@@ -222,9 +202,6 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from Andrej 
         ADAPTERS_DIR / "aider" / "CONVENTIONS.md": aider.strip() + "\n",
         ADAPTERS_DIR / "gemini" / "GEMINI.md": gemini.strip() + "\n",
     }
-
-    if (ADAPTERS_DIR / "cursor" / ".cursorrules").exists():
-        adapters[ADAPTERS_DIR / "cursor" / ".cursorrules"] = cursor_rules.strip() + "\n"
 
     return adapters
 
