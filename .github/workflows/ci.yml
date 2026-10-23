@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-and-test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify adapter synchronization
+        run: |
+          python3 scripts/sync_adapters.py --check
+
+      - name: Test install.sh (Default)
+        run: |
+          TEST_DIR=$(mktemp -d)
+          ./install.sh --dir "$TEST_DIR"
+          test -f "$TEST_DIR/AGENTS.md"
+          test -f "$TEST_DIR/CLAUDE.md"
+          test -f "$TEST_DIR/.cursor/rules/karpathy-guidelines.mdc"
+          test -f "$TEST_DIR/.github/copilot-instructions.md"
+          test -f "$TEST_DIR/.windsurfrules"
+          test -f "$TEST_DIR/.clinerules"
+          test -f "$TEST_DIR/CONVENTIONS.md"
+          test -f "$TEST_DIR/GEMINI.md"
+          test -f "$TEST_DIR/EXAMPLES.md"
+
+      - name: Test install.sh (Specific agents & Append mode)
+        run: |
+          TEST_DIR=$(mktemp -d)
+          mkdir -p "$TEST_DIR"
+          echo "# Existing Project Instructions" > "$TEST_DIR/CLAUDE.md"
+          ./install.sh --dir "$TEST_DIR" --agents claude,cursor --append
+          grep -q "Existing Project Instructions" "$TEST_DIR/CLAUDE.md"
+          grep -q "SKARP_GUIDELINES_START" "$TEST_DIR/CLAUDE.md"
+          test -f "$TEST_DIR/.cursor/rules/karpathy-guidelines.mdc"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Test Node.js CLI (bin/skarp.js)
+        run: |
+          node bin/skarp.js --help
+          TEST_DIR=$(mktemp -d)
+          node bin/skarp.js --dir "$TEST_DIR" --agents copilot,windsurf
+          test -f "$TEST_DIR/.github/copilot-instructions.md"
+          test -f "$TEST_DIR/.windsurfrules"
+
+  test-windows:
+    name: Test on Windows PowerShell
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test install.ps1
+        shell: pwsh
+        run: |
+          .\install.ps1 -Help
+          $TestDir = New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\skarp-test"
+          .\install.ps1 -Dir $TestDir.FullName -Agents cursor,claude
+          if (-not (Test-Path (Join-Path $TestDir.FullName "CLAUDE.md"))) { throw "CLAUDE.md missing" }
+          if (-not (Test-Path (Join-Path $TestDir.FullName "EXAMPLES.md"))) { throw "EXAMPLES.md missing" }

@@ -1,0 +1,35 @@
+{
+  "name": "skarp",
+  "version": "1.0.0",
+  "description": "Universal Karpathy Guidelines for AI Coding Agents",
+  "main": "bin/skarp.js",
+  "bin": {
+    "skarp": "bin/skarp.js"
+  },
+  "scripts": {
+    "test": "node bin/skarp.js --help"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/realmadede/Skarp.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "claude",
+    "cursor",
+    "copilot",
+    "windsurf",
+    "cline",
+    "aider",
+    "gemini",
+    "karpathy",
+    "guidelines"
+  ],
+  "author": "realmadede <bagomwaraphael@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/realmadede/Skarp/issues"
+  },
+  "homepage": "https://github.com/realmadede/Skarp#readme"
+}

@@ -1,0 +1,199 @@
+<#
+.SYNOPSIS
+    Skarp — Universal Karpathy Guidelines Installer for Windows (PowerShell)
+    https://github.com/realmadede/Skarp
+
+.DESCRIPTION
+    Installs Andrej Karpathy-inspired behavioral guidelines for AI coding agents.
+    Supports Universal AGENTS.md, Claude Code, Cursor, GitHub Copilot, Windsurf, Cline, Aider, Gemini CLI, etc.
+
+.EXAMPLE
+    # Install for all supported agents in current directory:
+    .\install.ps1
+
+.EXAMPLE
+    # Install via remote one-liner:
+    irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1 | iex
+
+.EXAMPLE
+    # Install for specific agents and append to existing files:
+    .\install.ps1 -Agents cursor,claude -Append
+#>
+
+[CmdletBinding()]
+param (
+    [Alias("agent")]
+    [string[]]$Agents = @("all"),
+
+    [Alias("d")]
+    [string]$Dir = ".",
+
+    [Alias("f")]
+    [switch]$Force,
+
+    [Alias("app")]
+    [switch]$Append,
+
+    [switch]$NoExamples,
+
+    [Alias("l")]
+    [switch]$List,
+
+    [Alias("h")]
+    [switch]$Help
+)
+
+$RepoRawUrl = "https://raw.githubusercontent.com/realmadede/Skarp/main"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path 2>$null
+
+$AllAgents = @("universal", "claude", "cursor", "copilot", "windsurf", "cline", "aider", "gemini")
+
+if ($Help) {
+    Write-Host @"
+   _____ _                      
+  / ____| |                     
+ | (___ | | ____ _ _ __ _ __    
+  \___ \| |/ / _` | '__| '_ \   
+  ____) |   < (_| | |  | |_) |  
+ |_____/|_|\_\__,_|_|  | .__/   
+                       | |      
+                       |_|      
+  Universal Karpathy Guidelines for AI Coding Agents (Windows PowerShell)
+
+Usage:
+  install.ps1 [-Agents <list>] [-Dir <path>] [-Force] [-Append] [-NoExamples] [-List] [-Help]
+
+Options:
+  -Agents, -a       Comma-separated list or array of agents to install (default: all)
+                    Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
+  -Dir, -d          Target project directory (default: .)
+  -Append, -A       Append/merge guidelines into existing files instead of skipping
+  -Force, -f        Overwrite existing rule files without prompting
+  -NoExamples       Skip copying EXAMPLES.md reference file
+  -List, -l         List supported agents and their target files
+  -Help, -h         Show this help message
+"@
+    exit 0
+}
+
+if ($List) {
+    Write-Host @"
+Supported Agents & Target Files:
+  universal   -> AGENTS.md
+  claude      -> CLAUDE.md
+  cursor      -> .cursor\rules\karpathy-guidelines.mdc
+  copilot     -> .github\copilot-instructions.md
+  windsurf    -> .windsurfrules
+  cline       -> .clinerules
+  aider       -> CONVENTIONS.md
+  gemini      -> GEMINI.md
+"@
+    exit 0
+}
+
+# Resolve selected agents
+$Selected = @()
+if ($Agents -contains "all") {
+    $Selected = $AllAgents
+} else {
+    foreach ($item in $Agents) {
+        $parts = $item.Split(",")
+        foreach ($p in $parts) {
+            $trimmed = $p.Trim().ToLower()
+            if ($trimmed -and $trimmed -ne "all") {
+                $Selected += $trimmed
+            }
+        }
+    }
+}
+
+$ResolvedTargetDir = (Resolve-Path -Path $Dir -ErrorAction SilentlyContinue)
+if (-not $ResolvedTargetDir) {
+    New-Item -ItemType Directory -Path $Dir -Force | Out-Null
+    $ResolvedTargetDir = (Resolve-Path -Path $Dir).Path
+} else {
+    $ResolvedTargetDir = $ResolvedTargetDir.Path
+}
+
+Write-Host "Installing Skarp guidelines into: $ResolvedTargetDir"
+
+function Install-SkarpFile {
+    param (
+        [string]$AgentName,
+        [string]$RelTarget,
+        [string]$AdapterPath
+    )
+
+    $FullTarget = Join-Path $ResolvedTargetDir $RelTarget
+    $TargetFolder = Split-Path -Parent $FullTarget
+    if (-not (Test-Path $TargetFolder)) {
+        New-Item -ItemType Directory -Path $TargetFolder -Force | Out-Null
+    }
+
+    $LocalSource = $null
+    if ($ScriptDir -and (Test-Path (Join-Path $ScriptDir $AdapterPath))) {
+        $LocalSource = (Join-Path $ScriptDir $AdapterPath)
+    }
+
+    $Content = ""
+    if ($LocalSource) {
+        $Content = Get-Content -Path $LocalSource -Raw -Encoding UTF8
+    } else {
+        $RemoteUrl = "$RepoRawUrl/$AdapterPath"
+        try {
+            $Content = (Invoke-RestMethod -Uri $RemoteUrl -UseBasicParsing)
+        } catch {
+            Write-Error "Failed to download $RemoteUrl : $_"
+            return
+        }
+    }
+
+    if (Test-Path $FullTarget) {
+        if ($Append -and ($RelTarget -ne "EXAMPLES.md")) {
+            $StartMarker = "<!-- SKARP_GUIDELINES_START -->"
+            $EndMarker = "<!-- SKARP_GUIDELINES_END -->"
+            $ExistingText = Get-Content -Path $FullTarget -Raw -Encoding UTF8
+
+            if ($ExistingText -match [regex]::Escape($StartMarker)) {
+                $Pattern = [regex]::Escape($StartMarker) + ".*?" + [regex]::Escape($EndMarker)
+                $Replacement = "$StartMarker`r`n$Content`r`n$EndMarker"
+                $NewText = [regex]::Replace($ExistingText, $Pattern, $Replacement, [System.Text.RegularExpressions.RegexOptions]::Singleline)
+                Set-Content -Path $FullTarget -Value $NewText -Encoding UTF8
+                Write-Host "  [UPDATED] $RelTarget (refreshed existing Skarp block)"
+                return
+            } else {
+                $NewText = "$ExistingText`r`n`r`n$StartMarker`r`n$Content`r`n$EndMarker"
+                Set-Content -Path $FullTarget -Value $NewText -Encoding UTF8
+                Write-Host "  [MERGED]  $RelTarget (appended to existing file)"
+                return
+            }
+        } elseif (-not $Force) {
+            Write-Host "  [SKIP]    $RelTarget already exists. Use -Force to overwrite or -Append to merge."
+            return
+        }
+    }
+
+    Set-Content -Path $FullTarget -Value $Content -Encoding UTF8
+    Write-Host "  [OK]      $RelTarget"
+}
+
+foreach ($agent in $Selected) {
+    switch ($agent) {
+        "universal" { Install-SkarpFile "universal" "AGENTS.md" "adapters/universal/AGENTS.md" }
+        "claude"    { Install-SkarpFile "claude" "CLAUDE.md" "adapters/claude/CLAUDE.md" }
+        "cursor"    { Install-SkarpFile "cursor" ".cursor/rules/karpathy-guidelines.mdc" "adapters/cursor/karpathy-guidelines.mdc" }
+        "copilot"   { Install-SkarpFile "copilot" ".github/copilot-instructions.md" "adapters/copilot/copilot-instructions.md" }
+        "windsurf"  { Install-SkarpFile "windsurf" ".windsurfrules" "adapters/windsurf/.windsurfrules" }
+        "cline"     { Install-SkarpFile "cline" ".clinerules" "adapters/cline/.clinerules" }
+        "aider"     { Install-SkarpFile "aider" "CONVENTIONS.md" "adapters/aider/CONVENTIONS.md" }
+        "gemini"    { Install-SkarpFile "gemini" "GEMINI.md" "adapters/gemini/GEMINI.md" }
+        default     { Write-Warning "Unrecognized agent: $agent (skipping)" }
+    }
+}
+
+if (-not $NoExamples) {
+    Install-SkarpFile "examples" "EXAMPLES.md" "EXAMPLES.md"
+}
+
+Write-Host ""
+Write-Host "Installation complete! Skarp guidelines are now active for selected agents."

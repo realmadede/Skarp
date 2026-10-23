@@ -1,5 +1,9 @@
 # Skarp — Universal Karpathy Guidelines for AI Coding Agents
 
+[![CI](https://github.com/realmadede/Skarp/actions/workflows/ci.yml/badge.svg)](https://github.com/realmadede/Skarp/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/realmadede/Skarp/releases)
+
 > Universal behavioral guidelines to reduce common LLM coding mistakes across **any** AI agent, derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on AI coding pitfalls.
 
 ---
@@ -33,7 +37,7 @@ These pitfalls stem from fundamental LLM autoregressive characteristics, not fro
 
 Skarp comes with pre-configured adapters for all major tools located in [`adapters/`](adapters/):
 
-| Agent / Tool | Config File Location | Adapter Location |
+| Agent / Tool | Config File Location | Ready Adapter |
 | :--- | :--- | :--- |
 | **Universal Standard** | `AGENTS.md` | [`adapters/universal/AGENTS.md`](adapters/universal/AGENTS.md) |
 | **Claude Code** | `CLAUDE.md` | [`adapters/claude/CLAUDE.md`](adapters/claude/CLAUDE.md) |
@@ -48,27 +52,53 @@ Skarp comes with pre-configured adapters for all major tools located in [`adapte
 
 ## Quick Install
 
-### Method 1: Universal Installer Script (Recommended)
+### Method 1: Interactive Zero-Dependency CLI (`npx skarp`)
 
-Run the installer directly into your target project:
+Run anywhere via Node / npx:
+
+```bash
+# Interactive setup in the current project:
+npx skarp
+
+# Or specify agents directly:
+npx skarp --agents cursor,claude,copilot
+
+# Append to existing rules without overwriting:
+npx skarp --append
+```
+
+---
+
+### Method 2: Universal Bash Installer (Linux, macOS, WSL)
 
 ```bash
 # Install for all supported agents in current directory:
 curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash
 
-# Or install for specific agents only (EXAMPLES.md is included automatically):
+# Or install for specific agents only:
 curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash -s -- --agents cursor,claude,universal
 
-# Or install into a specific directory:
-curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash -s -- --dir /path/to/my-project --agents copilot,windsurf
+# Merge into existing configuration files without overwriting:
+curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash -s -- --append
 ```
 
-If you have cloned this repository locally:
-```bash
-./install.sh --agents cursor,claude,copilot
+---
+
+### Method 3: Windows PowerShell Installer (`install.ps1`)
+
+In PowerShell on Windows:
+
+```powershell
+# Install for all agents in current directory:
+irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1 | iex
+
+# Or specify agents and append mode:
+irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1 | iex -Agents cursor,claude -Append
 ```
 
-### Method 2: One-Line Single File Download
+---
+
+### Method 4: One-Line Single File Download
 
 **Universal standard (`AGENTS.md`):**
 ```bash
@@ -95,10 +125,25 @@ mkdir -p .github && curl -o .github/copilot-instructions.md https://raw.githubus
 curl -o .windsurfrules https://raw.githubusercontent.com/realmadede/Skarp/main/adapters/windsurf/.windsurfrules
 ```
 
-**Cline / Roo Code (`.clinerules`):**
+---
+
+## Appending to Existing Project Rules
+
+If your repository already has an existing `CLAUDE.md`, `.windsurfrules`, or `.cursorrules`, pass `--append` (or `-A`):
+
 ```bash
-curl -o .clinerules https://raw.githubusercontent.com/realmadede/Skarp/main/adapters/cline/.clinerules
+./install.sh --append
+# or
+npx skarp --append
 ```
+
+Skarp wraps guidelines between safety markers:
+```markdown
+<!-- SKARP_GUIDELINES_START -->
+... guidelines ...
+<!-- SKARP_GUIDELINES_END -->
+```
+Running `--append` again in the future safely refreshes the Skarp block without altering any of your own custom team instructions.
 
 ---
 
@@ -154,50 +199,36 @@ For multi-step tasks, state and execute a concise plan:
 3. [Step] → verify: [check / test command]
 ```
 
-Strong success criteria let the agent loop independently toward a verified solution.
-
 ---
 
-## Key Insight
+## Evaluating Your Agent (`EVALS.md`)
 
-From Andrej Karpathy:
+How do you know if your agent is actually respecting these guidelines? 
 
-> *"LLMs are exceptionally good at looping until they meet specific goals... Don't tell it what to do, give it success criteria and watch it go."*
+See [**`EVALS.md`**](EVALS.md) for a standardized 4-part compliance benchmark:
+1. **The Ambiguity Test** (Tests Principle 1: Think Before Coding)
+2. **The Overengineering Test** (Tests Principle 2: Simplicity First)
+3. **The Surgical Diff Test** (Tests Principle 3: Surgical Changes)
+4. **The Verification Loop Test** (Tests Principle 4: Goal-Driven Execution)
 
 ---
 
 ## Real-World Examples
 
-See [**`EXAMPLES.md`**](EXAMPLES.md) for detailed before-and-after examples of good vs. bad LLM behaviors across each principle.
+See [**`EXAMPLES.md`**](EXAMPLES.md) for concrete before-and-after demonstrations of each principle in action.
 
 ---
 
-## How to Know It's Working
+## Contributing & Adapter Sync
 
-You know these guidelines are working when:
-- **Clean diffs:** Only requested changes appear in git diffs.
-- **Zero bloat:** Code is minimal, straightforward, and readable.
-- **Questions before mistakes:** Clarifying questions arrive before implementation rather than apologies after breakage.
-- **Verified completion:** Changes pass tests or verification commands before being presented.
-
----
-
-## Customization
-
-These guidelines are designed to be merged with your project-specific instructions. Add a section at the bottom of your rules file:
-
-```markdown
-## Project-Specific Guidelines
-- Use TypeScript strict mode.
-- All API endpoints must have integration tests.
-- Follow existing error patterns in `src/utils/errors.ts`.
-```
-
----
-
-## Tradeoff Note
-
-These guidelines bias toward **caution over speed**. For trivial tasks (simple typo fixes, obvious one-liners), use judgment — not every minor change needs exhaustive verification loops.
+To propose improvements to the guidelines or add new agents:
+1. Edit the canonical [`AGENTS.md`](AGENTS.md).
+2. Sync all adapters automatically:
+   ```bash
+   python3 scripts/sync_adapters.py
+   python3 scripts/sync_adapters.py --check
+   ```
+See [**`CONTRIBUTING.md`**](CONTRIBUTING.md) for full guidelines.
 
 ---
 

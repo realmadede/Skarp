@@ -17,6 +17,7 @@ AGENTS_INPUT="all"
 FORCE=false
 SYMLINK=false
 WITH_EXAMPLES=true
+APPEND=false
 
 ALL_AGENTS=("universal" "claude" "cursor" "copilot" "windsurf" "cline" "aider" "gemini")
 
@@ -47,6 +48,7 @@ Options:
   -d, --dir <path>      Target project directory (default: current directory .)
   --no-examples         Skip copying EXAMPLES.md reference file (installed by default)
   -s, --symlink         Create symlinks instead of copying (requires local cloned repo)
+  -A, --append          Append/merge guidelines into existing files instead of skipping
   -f, --force           Overwrite existing rule files without prompting
   -l, --list            List all supported agents and their target files
   -h, --help            Show this help message
@@ -106,6 +108,10 @@ while [[ $# -gt 0 ]]; do
       SYMLINK=true
       shift
       ;;
+    -A|--append)
+      APPEND=true
+      shift
+      ;;
     -f|--force)
       FORCE=true
       shift
@@ -153,15 +159,54 @@ install_file() {
   target_dir="$(dirname "$full_target")"
   mkdir -p "$target_dir"
 
-  if [[ -f "$full_target" && "$FORCE" != true ]]; then
-    echo "  [SKIP] $rel_target already exists. Use --force to overwrite."
-    return
-  fi
-
   # Check if running from local repo with adapter available
   local local_source=""
   if [[ -n "$SCRIPT_DIR" && -f "$SCRIPT_DIR/$adapter_path" ]]; then
     local_source="$SCRIPT_DIR/$adapter_path"
+  fi
+
+  if [[ -f "$full_target" ]]; then
+    if [[ "$APPEND" == true && "$rel_target" != "EXAMPLES.md" ]]; then
+      local start_marker="<!-- SKARP_GUIDELINES_START -->"
+      local end_marker="<!-- SKARP_GUIDELINES_END -->"
+
+      local content=""
+      if [[ -n "$local_source" ]]; then
+        content="$(cat "$local_source")"
+      else
+        local remote_url="$REPO_RAW_URL/$adapter_path"
+        if command -v curl >/dev/null 2>&1; then
+          content="$(curl -fsSL "$remote_url")"
+        elif command -v wget >/dev/null 2>&1; then
+          content="$(wget -qO- "$remote_url")"
+        fi
+      fi
+
+      if grep -q "<!-- SKARP_GUIDELINES_START -->" "$full_target"; then
+        python3 -c "
+import sys, re
+path, content, start, end = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+with open(path, 'r', encoding='utf-8') as f:
+    text = f.read()
+pattern = re.compile(rf'{re.escape(start)}.*?{re.escape(end)}', re.DOTALL)
+block = f'{start}\n{content}\n{end}'
+new_text = pattern.sub(block, text)
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(new_text)
+" "$full_target" "$content" "$start_marker" "$end_marker" 2>/dev/null || {
+          printf "\n\n%s\n%s\n%s\n" "$start_marker" "$content" "$end_marker" >> "$full_target"
+        }
+        echo "  [UPDATED] $rel_target (refreshed existing Skarp block)"
+        return
+      else
+        printf "\n\n%s\n%s\n%s\n" "$start_marker" "$content" "$end_marker" >> "$full_target"
+        echo "  [MERGED] $rel_target (appended to existing file)"
+        return
+      fi
+    elif [[ "$FORCE" != true ]]; then
+      echo "  [SKIP] $rel_target already exists. Use --force to overwrite or --append to merge."
+      return
+    fi
   fi
 
   if [[ "$SYMLINK" == true ]]; then
