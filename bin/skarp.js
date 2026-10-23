@@ -49,6 +49,7 @@ Options:
                         Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
   -d, --dir <path>      Target directory (default: current directory .)
   -A, --append          Append/merge guidelines into existing files instead of skipping
+  -u, --uninstall       Uninstall guidelines from target directory (cleans merged blocks)
   -f, --force           Overwrite existing files without prompting
   --no-examples         Skip copying EXAMPLES.md reference file (installed by default)
   -l, --list            List all supported agents and their target files
@@ -124,6 +125,38 @@ async function installFile(targetDir, relTarget, adapterPath, { force, append })
   console.log(`  [OK]      ${relTarget}`);
 }
 
+function uninstallFile(targetDir, relTarget) {
+  const fullTarget = path.join(targetDir, relTarget);
+  if (!fs.existsSync(fullTarget)) return;
+
+  const startMarker = '<!-- SKARP_GUIDELINES_START -->';
+  const endMarker = '<!-- SKARP_GUIDELINES_END -->';
+  const existingText = fs.readFileSync(fullTarget, 'utf8');
+
+  if (existingText.includes(startMarker)) {
+    const regex = new RegExp(`\\n*${escapeRegex(startMarker)}[\\s\\S]*?${escapeRegex(endMarker)}\\n*`, 'g');
+    const updated = existingText.replace(regex, '').trim() + '\n';
+    fs.writeFileSync(fullTarget, updated, 'utf8');
+    console.log(`  [CLEANED] ${relTarget} (removed Skarp block)`);
+  } else {
+    fs.unlinkSync(fullTarget);
+    console.log(`  [REMOVED] ${relTarget}`);
+  }
+
+  const parentDir = path.dirname(fullTarget);
+  if (parentDir !== targetDir && parentDir.startsWith(targetDir)) {
+    try {
+      if (fs.readdirSync(parentDir).length === 0) {
+        fs.rmdirSync(parentDir);
+        const grandParent = path.dirname(parentDir);
+        if (grandParent !== targetDir && grandParent.startsWith(targetDir) && fs.readdirSync(grandParent).length === 0) {
+          fs.rmdirSync(grandParent);
+        }
+      }
+    } catch {}
+  }
+}
+
 function escapeRegex(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -135,6 +168,7 @@ async function main() {
   let agentsList = ['all'];
   let force = false;
   let append = false;
+  let uninstall = false;
   let withExamples = true;
 
   for (let i = 0; i < args.length; i++) {
@@ -151,6 +185,8 @@ async function main() {
       force = true;
     } else if (arg === '-A' || arg === '--append') {
       append = true;
+    } else if (arg === '-u' || arg === '--uninstall') {
+      uninstall = true;
     } else if (arg === '--no-examples') {
       withExamples = false;
     } else if (arg === '-d' || arg === '--dir') {
@@ -163,6 +199,17 @@ async function main() {
   const selectedKeys = agentsList.includes('all')
     ? Object.keys(AGENT_MAPPINGS)
     : agentsList.filter(k => AGENT_MAPPINGS[k]);
+
+  if (uninstall) {
+    console.log(`Uninstalling Skarp guidelines from: ${targetDir}`);
+    for (const key of selectedKeys) {
+      const { target } = AGENT_MAPPINGS[key];
+      uninstallFile(targetDir, target);
+    }
+    uninstallFile(targetDir, 'EXAMPLES.md');
+    console.log('\nUninstall complete!');
+    return;
+  }
 
   console.log(`Installing Skarp guidelines into: ${targetDir}`);
 

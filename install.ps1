@@ -34,6 +34,9 @@ param (
     [Alias("app")]
     [switch]$Append,
 
+    [Alias("u")]
+    [switch]$Uninstall,
+
     [switch]$NoExamples,
 
     [Alias("l")]
@@ -68,6 +71,7 @@ Options:
                     Available: universal, claude, cursor, copilot, windsurf, cline, aider, gemini, all
   -Dir, -d          Target project directory (default: .)
   -Append, -A       Append/merge guidelines into existing files instead of skipping
+  -Uninstall, -u    Uninstall guidelines from target directory (cleans merged blocks)
   -Force, -f        Overwrite existing rule files without prompting
   -NoExamples       Skip copying EXAMPLES.md reference file
   -List, -l         List supported agents and their target files
@@ -113,6 +117,55 @@ if (-not $ResolvedTargetDir) {
     $ResolvedTargetDir = (Resolve-Path -Path $Dir).Path
 } else {
     $ResolvedTargetDir = $ResolvedTargetDir.Path
+}
+
+function Uninstall-SkarpFile {
+    param ([string]$RelTarget)
+
+    $FullTarget = Join-Path $ResolvedTargetDir $RelTarget
+    if (-not (Test-Path $FullTarget)) { return }
+
+    $StartMarker = "<!-- SKARP_GUIDELINES_START -->"
+    $EndMarker = "<!-- SKARP_GUIDELINES_END -->"
+    $ExistingText = Get-Content -Path $FullTarget -Raw -Encoding UTF8
+
+    if ($ExistingText -match [regex]::Escape($StartMarker)) {
+        $Pattern = "\r?\n*" + [regex]::Escape($StartMarker) + ".*?" + [regex]::Escape($EndMarker) + "\r?\n*"
+        $NewText = [regex]::Replace($ExistingText, $Pattern, "", [System.Text.RegularExpressions.RegexOptions]::Singleline).Trim() + "`r`n"
+        Set-Content -Path $FullTarget -Value $NewText -Encoding UTF8
+        Write-Host "  [CLEANED] $RelTarget (removed Skarp block)"
+    } else {
+        Remove-Item -Path $FullTarget -Force
+        Write-Host "  [REMOVED] $RelTarget"
+    }
+
+    $ParentFolder = Split-Path -Parent $FullTarget
+    if ($ParentFolder -ne $ResolvedTargetDir -and (Test-Path $ParentFolder)) {
+        $Remaining = Get-ChildItem -Path $ParentFolder -Force -Recurse
+        if (-not $Remaining) {
+            Remove-Item -Path $ParentFolder -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+if ($Uninstall) {
+    Write-Host "Uninstalling Skarp guidelines from: $ResolvedTargetDir"
+    foreach ($agent in $Selected) {
+        switch ($agent) {
+            "universal" { Uninstall-SkarpFile "AGENTS.md" }
+            "claude"    { Uninstall-SkarpFile "CLAUDE.md" }
+            "cursor"    { Uninstall-SkarpFile ".cursor/rules/karpathy-guidelines.mdc" }
+            "copilot"   { Uninstall-SkarpFile ".github/copilot-instructions.md" }
+            "windsurf"  { Uninstall-SkarpFile ".windsurfrules" }
+            "cline"     { Uninstall-SkarpFile ".clinerules" }
+            "aider"     { Uninstall-SkarpFile "CONVENTIONS.md" }
+            "gemini"    { Uninstall-SkarpFile "GEMINI.md" }
+        }
+    }
+    Uninstall-SkarpFile "EXAMPLES.md"
+    Write-Host ""
+    Write-Host "Uninstall complete!"
+    exit 0
 }
 
 Write-Host "Installing Skarp guidelines into: $ResolvedTargetDir"

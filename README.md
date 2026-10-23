@@ -147,6 +147,35 @@ Running `--append` again in the future safely refreshes the Skarp block without 
 
 ---
 
+## Uninstallation
+
+To remove Skarp from your project at any time:
+
+### Option 1: Automated 1-Command Uninstallation
+Skarp automatically detects standalone files and removes them. If you used `--append`, it strips only the Skarp block while keeping your own custom rules 100% untouched:
+
+```bash
+# Via npx:
+npx skarp --uninstall
+
+# Via Bash (Linux / macOS / WSL):
+curl -fsSL https://raw.githubusercontent.com/realmadede/Skarp/main/install.sh | bash -s -- --uninstall
+# or locally:
+./install.sh --uninstall
+
+# Via Windows PowerShell:
+irm https://raw.githubusercontent.com/realmadede/Skarp/main/install.ps1 | iex -Uninstall
+```
+
+### Option 2: Manual Removal
+To delete standalone rule files manually:
+```bash
+rm -f AGENTS.md CLAUDE.md .cursor/rules/karpathy-guidelines.mdc .github/copilot-instructions.md .windsurfrules .clinerules CONVENTIONS.md GEMINI.md EXAMPLES.md
+```
+If you used `--append`, delete the block between `<!-- SKARP_GUIDELINES_START -->` and `<!-- SKARP_GUIDELINES_END -->` in your configuration file.
+
+---
+
 ## The Four Principles in Detail
 
 ### 1. Think Before Coding

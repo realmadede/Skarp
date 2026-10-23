@@ -50,6 +50,9 @@ jobs:
           grep -q "Existing Project Instructions" "$TEST_DIR/CLAUDE.md"
           grep -q "SKARP_GUIDELINES_START" "$TEST_DIR/CLAUDE.md"
           test -f "$TEST_DIR/.cursor/rules/karpathy-guidelines.mdc"
+          ./install.sh --dir "$TEST_DIR" --uninstall
+          grep -q "Existing Project Instructions" "$TEST_DIR/CLAUDE.md"
+          ! grep -q "SKARP_GUIDELINES_START" "$TEST_DIR/CLAUDE.md"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -80,3 +83,5 @@ jobs:
           .\install.ps1 -Dir $TestDir.FullName -Agents cursor,claude
           if (-not (Test-Path (Join-Path $TestDir.FullName "CLAUDE.md"))) { throw "CLAUDE.md missing" }
           if (-not (Test-Path (Join-Path $TestDir.FullName "EXAMPLES.md"))) { throw "EXAMPLES.md missing" }
+          .\install.ps1 -Dir $TestDir.FullName -Uninstall
+          if (Test-Path (Join-Path $TestDir.FullName "CLAUDE.md")) { throw "CLAUDE.md should be removed" }

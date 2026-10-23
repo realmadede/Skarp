@@ -18,6 +18,7 @@ FORCE=false
 SYMLINK=false
 WITH_EXAMPLES=true
 APPEND=false
+UNINSTALL=false
 
 ALL_AGENTS=("universal" "claude" "cursor" "copilot" "windsurf" "cline" "aider" "gemini")
 
@@ -49,6 +50,7 @@ Options:
   --no-examples         Skip copying EXAMPLES.md reference file (installed by default)
   -s, --symlink         Create symlinks instead of copying (requires local cloned repo)
   -A, --append          Append/merge guidelines into existing files instead of skipping
+  -u, --uninstall       Uninstall guidelines from target directory (cleans merged blocks)
   -f, --force           Overwrite existing rule files without prompting
   -l, --list            List all supported agents and their target files
   -h, --help            Show this help message
@@ -112,6 +114,10 @@ while [[ $# -gt 0 ]]; do
       APPEND=true
       shift
       ;;
+    -u|--uninstall)
+      UNINSTALL=true
+      shift
+      ;;
     -f|--force)
       FORCE=true
       shift
@@ -146,6 +152,66 @@ fi
 
 mkdir -p "$TARGET_DIR"
 TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
+
+uninstall_file() {
+  local rel_target="$1"
+  local full_target="$TARGET_DIR/$rel_target"
+
+  if [[ ! -f "$full_target" ]]; then
+    return
+  fi
+
+  local start_marker="<!-- SKARP_GUIDELINES_START -->"
+  local end_marker="<!-- SKARP_GUIDELINES_END -->"
+
+  if grep -q "<!-- SKARP_GUIDELINES_START -->" "$full_target"; then
+    python3 -c "
+import sys, re
+path, start, end = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(path, 'r', encoding='utf-8') as f:
+    text = f.read()
+pattern = re.compile(rf'\n*{re.escape(start)}.*?{re.escape(end)}\n*', re.DOTALL)
+new_text = pattern.sub('', text)
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(new_text.strip() + '\n')
+" "$full_target" "$start_marker" "$end_marker" 2>/dev/null
+    echo "  [CLEANED] $rel_target (removed Skarp block)"
+  else
+    rm -f "$full_target"
+    echo "  [REMOVED] $rel_target"
+  fi
+
+  local parent_dir
+  parent_dir="$(dirname "$full_target")"
+  if [[ "$parent_dir" != "$TARGET_DIR" && "$parent_dir" == "$TARGET_DIR"* ]]; then
+    rmdir "$parent_dir" 2>/dev/null || true
+    local grand_parent
+    grand_parent="$(dirname "$parent_dir")"
+    if [[ "$grand_parent" != "$TARGET_DIR" && "$grand_parent" == "$TARGET_DIR"* ]]; then
+      rmdir "$grand_parent" 2>/dev/null || true
+    fi
+  fi
+}
+
+if [[ "$UNINSTALL" == true ]]; then
+  echo "Uninstalling Skarp guidelines from: $TARGET_DIR"
+  for agent in "${SELECTED_AGENTS[@]}"; do
+    case "$agent" in
+      universal) uninstall_file "AGENTS.md" ;;
+      claude)    uninstall_file "CLAUDE.md" ;;
+      cursor)    uninstall_file ".cursor/rules/karpathy-guidelines.mdc" ;;
+      copilot)   uninstall_file ".github/copilot-instructions.md" ;;
+      windsurf)  uninstall_file ".windsurfrules" ;;
+      cline)     uninstall_file ".clinerules" ;;
+      aider)     uninstall_file "CONVENTIONS.md" ;;
+      gemini)    uninstall_file "GEMINI.md" ;;
+    esac
+  done
+  uninstall_file "EXAMPLES.md"
+  echo ""
+  echo "Uninstall complete!"
+  exit 0
+fi
 
 echo "Installing Skarp guidelines into: $TARGET_DIR"
 
